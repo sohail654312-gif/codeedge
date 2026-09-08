@@ -149,7 +149,7 @@ Real authentication tests explicitly skip locally unless `CODEEDGE_E2E_AUTH=1`.
 The native CI job requires them and fails on skipped/missing cases; it cannot fall
 back to PGlite or placeholder configuration. Stop existing dev servers before changing environment
 values; Playwright otherwise reuses that server. These tests cover both businesses,
-cross-tenant routes/API requests, revoked users, and sign-out.
+cross-tenant routes/API requests, revoked users, sign-out, and rejection of public signup.
 
 Set `PLAYWRIGHT_CHANNEL=chrome` to use an existing Google Chrome installation instead
 of downloading Chromium. Omit `PLAYWRIGHT_USE_BUILD` to test the development server.
@@ -157,6 +157,9 @@ of downloading Chromium. Omit `PLAYWRIGHT_USE_BUILD` to test the development ser
 ## Authentication and authorization
 
 - Invitation-only accounts: public sign-up and anonymous login are disabled.
+- Keep `auth.enable_signup = false` to block public registration. The separate
+  `auth.email.enable_signup = true` enables the email provider, including sign-in
+  for invited users; setting it to false also blocks existing users from signing in.
 - Supabase verifies email/password; protected pages require verified email.
 - Server-only session client with HttpOnly, SameSite=Lax cookies; Secure on HTTPS.
 - Proxy refreshes tokens. Every protected page/action/API calls `auth.getUser()`.

@@ -13,7 +13,7 @@ export default class NativeIntegrationReporter implements Reporter {
         file: test.location.file,
         // Expected failures must not count as successful security coverage.
         outcome: test.expectedStatus === "passed" && test.outcome() === "expected" ? "passed" : test.outcome(),
-      })), { "tests/e2e/auth.spec.ts": 3, "tests/e2e/shell.spec.ts": 2 });
+      })), { "tests/e2e/auth.spec.ts": 4, "tests/e2e/shell.spec.ts": 2 });
     } catch (error) {
       console.error(error instanceof Error ? error.message : "Native browser verification failed.");
       return { status: "failed" as const };

@@ -34,7 +34,9 @@ enable_anonymous_sign_ins = false
 minimum_password_length = 12
 
 [auth.email]
-enable_signup = false
+# The CLI maps this to the email provider switch, which also controls sign-in.
+# Public registration remains disabled by auth.enable_signup = false above.
+enable_signup = true
 enable_confirmations = true
 double_confirm_changes = true
 secure_password_change = true

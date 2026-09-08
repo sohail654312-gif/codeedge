@@ -3,6 +3,28 @@ import { expect, test } from "@playwright/test";
 // Explicit opt-in for real GoTrue/PostgREST integration. CI's Supabase job enables it.
 test.describe("local Supabase authentication", () => {
   test.skip(process.env.CODEEDGE_E2E_AUTH !== "1", "Requires local Supabase and npm run dev:seed; enable CODEEDGE_E2E_AUTH=1.");
+  test("email login is enabled while public signup is rejected", async ({ request }) => {
+    const api = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://invalid");
+    if (api.protocol !== "http:" || !["localhost", "127.0.0.1", "[::1]"].includes(api.hostname) || api.port !== "54321") {
+      throw new Error("Authentication integration requires the local disposable Supabase API.");
+    }
+    const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+    if (!key) throw new Error("The local Supabase public key is required.");
+    const headers = { apikey: key };
+    const settings = await request.get(new URL("/auth/v1/settings", api).href, { headers });
+    expect(settings.status()).toBe(200);
+    expect(await settings.json()).toMatchObject({
+      external: { email: true, anonymous_users: false },
+      disable_signup: true,
+      mailer_autoconfirm: false,
+    });
+    const signup = await request.post(new URL("/auth/v1/signup", api).href, {
+      headers,
+      data: { email: "uninvited@codeedge.test", password: "Codeedge-local-only-123!" },
+    });
+    expect(signup.status()).toBe(422);
+    expect(await signup.json()).toMatchObject({ error_code: "signup_disabled" });
+  });
   for (const person of [
     { email: "alice@codeedge.test", own: "Northfield Plumbing", other: "Westbrook Electrical", slug: "westbrook-electrical", otherId: "30000000-0000-4000-8000-000000000002" },
     { email: "bob@codeedge.test", own: "Westbrook Electrical", other: "Northfield Plumbing", slug: "northfield-plumbing", otherId: "30000000-0000-4000-8000-000000000001" },
