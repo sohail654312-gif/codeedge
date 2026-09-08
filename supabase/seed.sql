@@ -1,0 +1,2 @@
+-- Intentionally empty. No passwords or privileged keys in SQL migrations.
+-- Run `npm run dev:seed` after starting LOCAL Supabase for fictional test accounts.

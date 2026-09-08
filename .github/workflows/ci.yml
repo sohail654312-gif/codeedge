@@ -1,0 +1,136 @@
+name: Foundation checks
+on:
+  pull_request:
+  push:
+    branches: [main, 'codex/**']
+  workflow_dispatch:
+  merge_group:
+permissions:
+  contents: read
+concurrency:
+  group: foundation-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  application:
+    name: Application checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    outputs:
+      verified: ${{ steps.verify.outputs.verified }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - id: install
+        run: npm ci
+      - id: lint
+        run: npm run lint
+      - id: typecheck
+        run: npm run typecheck
+      - id: tests
+        run: npm test
+      - id: build
+        run: npm run build
+      - id: browser_install
+        run: npx playwright install --with-deps chromium
+      - id: browser
+        run: npm run test:e2e -- tests/e2e/shell.spec.ts
+        env:
+          PLAYWRIGHT_USE_BUILD: '1'
+      - name: Verify every required application step executed
+        id: verify
+        if: ${{ always() }}
+        env:
+          CODEEDGE_STEP_RESULTS: ${{ toJSON(steps) }}
+        run: node scripts/ci/check-required-steps.mjs application
+  supabase-integration:
+    name: Native Supabase integration
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    outputs:
+      verified: ${{ steps.verify.outputs.verified }}
+    env:
+      # Disposable containers on the GitHub runner. No repository secrets required.
+      CODEEDGE_REQUIRE_NATIVE_SUPABASE: '1'
+      CODEEDGE_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      CODEEDGE_E2E_AUTH: '1'
+      PLAYWRIGHT_USE_BUILD: '1'
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - id: install
+        run: npm ci
+      - id: start
+        run: npm run db:start
+      - name: Apply migrations to the disposable runner database
+        id: migrate
+        run: npm run db:reset -- --local
+      - name: Set local public configuration
+        id: environment
+        run: node scripts/ci/supabase-env.mjs
+      - name: Native pgTAP and RLS assertions
+        id: pgtap
+        run: |
+          test -s supabase/tests/foundation.test.sql
+          npm run db:test -- supabase/tests/foundation.test.sql
+      - name: Existing SQL security suite against native PostgreSQL
+        id: security
+        run: npm run test:security -- --reporter=default --reporter=json --outputFile=test-results/native-security.json
+      - name: Reject missing or skipped native security cases
+        id: security_report
+        run: node scripts/ci/check-security-report.mjs
+      - id: seed
+        run: npm run dev:seed
+      - id: build
+        run: npm run build
+      - id: browser_install
+        run: npx playwright install --with-deps chromium
+      - name: Production browser checks with real local Supabase authentication
+        id: browser
+        run: npm run test:e2e
+      - name: Verify every required native integration step executed
+        id: verify
+        if: ${{ always() }}
+        env:
+          CODEEDGE_STEP_RESULTS: ${{ toJSON(steps) }}
+        run: node scripts/ci/check-required-steps.mjs native
+      - if: always()
+        run: npm run db:stop
+  phase-1-merge-gate:
+    # Mandatory manual merge/release decision; no branch protection is assumed.
+    # Keep the name stable for the optional future ruleset template.
+    name: Phase 1 merge gate
+    needs: [application, supabase-integration]
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Require every verification job to succeed
+        env:
+          APPLICATION_RESULT: ${{ needs.application.result }}
+          SUPABASE_RESULT: ${{ needs.supabase-integration.result }}
+          APPLICATION_VERIFIED: ${{ needs.application.outputs.verified }}
+          SUPABASE_VERIFIED: ${{ needs.supabase-integration.outputs.verified }}
+          SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          if [[ "$APPLICATION_RESULT" != "success" || "$SUPABASE_RESULT" != "success" || "$APPLICATION_VERIFIED" != "true" || "$SUPABASE_VERIFIED" != "true" ]]; then
+            echo "Phase 1 is blocked: application=$APPLICATION_RESULT (steps=$APPLICATION_VERIFIED), native Supabase=$SUPABASE_RESULT (steps=$SUPABASE_VERIFIED)"
+            exit 1
+          fi
+          {
+            echo "Application and native Supabase verification both passed, including all required steps."
+            echo "Source commit: $SOURCE_COMMIT"
+            echo "Tested commit: $GITHUB_SHA"
+            echo "Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID (attempt $GITHUB_RUN_ATTEMPT)"
+            echo "Manual review required: record this evidence before merge, release, or Phase 2. GitHub does not enforce branch protection on the current plan."
+          } >> "$GITHUB_STEP_SUMMARY"
