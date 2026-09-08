@@ -117,7 +117,7 @@ describe("production PostgreSQL tenant policies", () => {
   });
   it("enables and forces RLS on every application table", async () => {
     const { rows } = await db.query("select relname, relrowsecurity, relforcerowsecurity from pg_class join pg_namespace n on n.oid=relnamespace where n.nspname='public' and relkind='r' order by relname");
-    expect(rows).toHaveLength(3);
+    expect(rows.map((row) => row.relname)).toEqual(["business_memberships", "business_profiles", "businesses", "profiles", "services"]);
     for (const row of rows) { expect(row.relrowsecurity).toBe(true); expect(row.relforcerowsecurity).toBe(true); }
   });
 });

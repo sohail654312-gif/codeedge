@@ -1,0 +1,41 @@
+import { expect, test } from "@playwright/test";
+
+test.describe("local Supabase business catalog", () => {
+  test.skip(process.env.CODEEDGE_E2E_AUTH !== "1", "Requires disposable local Supabase with fictional seeded accounts.");
+  test("owner can persist and clear profile details and create, update, delete a service", async ({ page }) => {
+    await page.goto("/sign-in");
+    await page.getByLabel("Email address").fill("alice@codeedge.test");
+    await page.getByLabel("Password", { exact: true }).fill("Codeedge-local-only-123!");
+    await page.getByRole("button", { name: "Sign in", exact: true }).click();
+    await page.getByRole("link", { name: /Northfield Plumbing/ }).click();
+    await page.getByLabel("Trading name", { exact: true }).fill("Northfield Test Trading");
+    await page.getByLabel("Business description").fill("Fictional local plumbing services.");
+    await page.getByRole("button", { name: "Save profile", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Clear profile details" })).toBeVisible();
+    await page.reload();
+    await expect(page.getByLabel("Trading name", { exact: true })).toHaveValue("Northfield Test Trading");
+    const create = page.locator("details").filter({ has: page.locator("summary", { hasText: /^Add service$/ }) });
+    await create.locator("summary").click();
+    await create.getByLabel("Service name").fill("Test boiler check");
+    await create.getByLabel("Starting price (£, optional)", { exact: true }).fill("89.99");
+    await create.getByRole("button", { name: "Create service" }).click();
+    const card = page.locator("article").filter({ has: page.getByRole("heading", { name: "Test boiler check", exact: true }) });
+    await expect(card).toBeVisible();
+    await card.locator("summary").click();
+    await expect(card.getByLabel("Starting price (£, optional)", { exact: true })).toHaveValue("89.99");
+    await card.getByLabel("Active", { exact: true }).uncheck();
+    await card.getByRole("button", { name: "Save service" }).click();
+    await expect(card.getByText("Inactive · Quote required", { exact: true })).toBeVisible();
+    await page.reload();
+    await expect(card.getByText("Inactive · Quote required", { exact: true })).toBeVisible();
+    page.once("dialog", (dialog) => dialog.accept());
+    await card.getByRole("button", { name: "Delete service" }).click();
+    await expect(card).toHaveCount(0);
+    page.once("dialog", (dialog) => dialog.accept());
+    await page.getByRole("button", { name: "Clear profile details" }).click();
+    await expect(page.getByLabel("Trading name", { exact: true })).toHaveValue("");
+    await page.reload();
+    await expect(page.getByLabel("Trading name", { exact: true })).toHaveValue("");
+    await expect(page.getByRole("heading", { name: "Northfield Plumbing", exact: true })).toBeVisible();
+  });
+});

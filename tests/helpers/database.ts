@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { PGlite } from "@electric-sql/pglite";
 import { Client } from "pg";
 import { requireNativeDatabase } from "../../scripts/ci/guards";
@@ -33,8 +33,10 @@ export async function openDatabase(): Promise<TestDatabase> {
     grant usage on schema auth, public to anon, authenticated;
     grant execute on function auth.uid() to anon, authenticated;
   `);
-  const migration = await readFile(new URL("../../supabase/migrations/20260908000100_foundation.sql", import.meta.url), "utf8");
-  await db.exec(migration);
+  const directory = new URL("../../supabase/migrations/", import.meta.url);
+  for (const file of (await readdir(directory)).filter((name) => name.endsWith(".sql")).sort()) {
+    await db.exec(await readFile(new URL(file, directory), "utf8"));
+  }
   await db.exec("BEGIN");
   return { query: (sql, params) => db.query(sql, params), exec: (sql) => db.exec(sql), close: async () => { await db.exec("ROLLBACK"); await db.close(); } };
 }

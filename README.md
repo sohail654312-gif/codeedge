@@ -2,8 +2,9 @@
 
 AI customer communication and lead management for UK service businesses.
 
-**Phase 1 only:** Next.js application shell, Supabase authentication, businesses,
-memberships, owner/staff roles, and PostgreSQL row-level security. No AI, WhatsApp,
+**Through Phase 2A:** Next.js application shell, Supabase authentication, businesses,
+memberships, owner/staff roles, PostgreSQL row-level security, business profiles,
+and services. No AI, WhatsApp,
 leads, payments, document ingestion, analytics, or advanced dashboard is implemented.
 
 ## Stack
@@ -239,3 +240,43 @@ tenant table needs explicit grants, RLS, tenant-qualified relationships, and neg
 tests. No deployment, commit, or push is performed by the setup scripts.
 
 See `docs/architecture/foundation.md` for verification boundaries and next work.
+
+## Phase 2A: business profiles and services
+
+The business workspace now contains a profile form and a service catalogue.
+Active members can read; only owners can create, edit, or delete. Every server
+mutation uses the existing verified user and live membership checks. RLS rechecks
+membership at statement time, including revocations. Tenant IDs and service IDs
+from forms only select records; they never grant access.
+
+Business name uses the existing owner-only rename flow. Timezone remains the
+Phase 1 UK value, Europe/London (including daylight saving). Optional profile
+fields live in business_profiles. Clearing the profile deletes only those optional
+details, not the tenant, name, services, users, or memberships. logo_alt is a plain
+text metadata placeholder: no external image fetch or upload is performed. Website
+addresses must be HTTPS without credentials and are displayed as escaped text.
+
+Services store starting prices as integer GBP pence, or NULL for no starting price.
+Zero is allowed. Amounts are limited to £1,000,000 with two decimal places; display
+order is an integer from 0 to 10,000. Quote-required and active flags are independent.
+Descriptions and addresses are plain text. Services sort by display order then ID.
+
+Apply migrations in filename order to a disposable development database before
+opening the workspace. No production database has been migrated by this change.
+The PGlite test adapter loads all migrations; existing CI already runs all SQL
+security suites against native PostgreSQL and all enabled browser suites against
+Supabase. Phase 1 authentication, grants/policies, and workflow gates are unchanged.
+The Phase 1 table-inventory assertion now checks all five application tables.
+
+On a constrained Windows machine the full local suite can use:
+
+```powershell
+npm test -- --maxWorkers=1 --execArgv=--liftoff-only --execArgv=--wasm-num-compilation-tasks=1 --execArgv=--disable-wasm-trap-handler --execArgv=--max-old-space-size=256
+```
+
+These runtime options reduce compiler memory; they do not remove assertions.
+Native authentication/catalog E2E requires the disposable Supabase CI environment.
+Do not run Docker on the 4 GB development machine. Phase 2A native CI remains
+unverified until an explicitly authorized push; the green Phase 1 run does not
+verify this new migration. No Phase 2B, AI, WhatsApp, leads, quotes, or payments are
+included.
