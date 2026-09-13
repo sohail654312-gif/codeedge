@@ -2,9 +2,9 @@
 
 AI customer communication and lead management for UK service businesses.
 
-**Through Phase 2A:** Next.js application shell, Supabase authentication, businesses,
+**Through Phase 2B (native CI pending for Phase 2B):** Next.js application shell, Supabase authentication, businesses,
 memberships, owner/staff roles, PostgreSQL row-level security, business profiles,
-and services. No AI, WhatsApp,
+services, service areas and opening hours. No AI, WhatsApp,
 leads, payments, document ingestion, analytics, or advanced dashboard is implemented.
 
 ## Stack
@@ -181,7 +181,7 @@ policies independently check active membership and business status on each state
 Owners may edit only their own business name; staff are read-only. UPDATE policies
 recheck permission even if membership was revoked after the application's first read.
 
-All three application tables have RLS enabled and forced. Anonymous clients have no
+All seven application tables have RLS enabled and forced. Anonymous clients have no
 table grants. Ordinary clients cannot insert/delete businesses or change memberships,
 roles, statuses, IDs, or ownership. Profiles are private to their user and store no roles.
 
@@ -280,3 +280,32 @@ Do not run Docker on the 4 GB development machine. Phase 2A native CI remains
 unverified until an explicitly authorized push; the green Phase 1 run does not
 verify this new migration. No Phase 2B, AI, WhatsApp, leads, quotes, or payments are
 included.
+
+## Phase 2B: service areas and opening hours
+
+Phase 2B means service areas and opening hours only. It does not add onboarding,
+invitations, membership management, FAQs or any later-phase features.
+
+Apply `20260913000100_service_areas_opening_hours.sql` after the existing migrations
+in the disposable CI database. `service_areas` stores a name, optional UK postcode
+or outward code (such as SW1A), plain-text coverage notes, active state and display
+order. Postcodes are normalized and syntax-checked, not verified with a location API.
+Owners can create, edit, deactivate or delete areas; active staff can read them.
+
+`opening_hours` has one record per business and ISO weekday (1 Monday to 7 Sunday).
+Owners save each day separately. Missing records display "Not configured"; closed
+records have null times. Open days require HH:MM times with closing later than
+opening on the same day. Times use the existing Europe/London business timezone.
+There are no overnight intervals, holiday overrides, emergency settings or bookings.
+
+Both tables force RLS using existing live membership predicates. Only owners may
+write; business IDs, record IDs, weekdays and timestamps cannot be updated by
+ordinary clients. Opening-hours deletion is not granted. No Phase 1/2A policies or
+CI gates are weakened or replaced. Unit/action/SQL tests cover the new behaviour;
+the SQL suite also runs against native PostgreSQL in existing CI. The new browser
+suite runs under the same mandatory native-auth CI configuration.
+
+The verified Phase 2A main commit is `a3397896a29fbdf397b856c556b422f4e10bc9cb`.
+Its post-merge run is https://github.com/sohail654312-gif/codeedge/actions/runs/34740511096.
+Phase 2B needs its own green native CI run after an authorized push. Do not run
+Docker on the 4 GB laptop; retain the constrained-memory local test command above.

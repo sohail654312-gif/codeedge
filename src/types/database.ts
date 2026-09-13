@@ -1,4 +1,4 @@
-// Schema-aligned types for the Phase 1 and Phase 2A migrations.
+// Schema-aligned types through the Phase 2B migrations.
 // Replace with reviewed `npm run db:types` output when a local Supabase stack is available.
 export type Role = "owner" | "staff";
 export type BusinessStatus = "active" | "suspended";
@@ -12,9 +12,15 @@ export type BusinessProfileFields = { trading_name: string; phone: string; email
 export type BusinessProfile = BusinessProfileFields & { business_id: string; created_at: string; updated_at: string };
 export type ServiceFields = { name: string; description: string; active: boolean; starting_price_pence: number | null; quote_required: boolean; display_order: number };
 export type Service = ServiceFields & { id: string; business_id: string; created_at: string; updated_at: string };
+export type ServiceAreaFields = { name: string; postcode: string; notes: string; active: boolean; display_order: number };
+export type ServiceArea = ServiceAreaFields & { id: string; business_id: string; created_at: string; updated_at: string };
+export type OpeningHoursFields = { is_closed: boolean; opens_at: string | null; closes_at: string | null };
+export type OpeningHours = OpeningHoursFields & { business_id: string; weekday: number; created_at: string; updated_at: string };
 export type Database = {
   public: {
     Tables: {
+      service_areas: Table<ServiceArea, ServiceAreaFields & { business_id: string }, Partial<ServiceAreaFields>>;
+      opening_hours: Table<OpeningHours, OpeningHoursFields & { business_id: string; weekday: number }, Partial<OpeningHoursFields>>;
       business_profiles: Table<BusinessProfile, BusinessProfileFields & { business_id: string }, Partial<BusinessProfileFields>>;
       services: Table<Service, ServiceFields & { business_id: string }, Partial<ServiceFields>>;
       businesses: Table<Business, { name: string; slug: string; id?: string; status?: BusinessStatus; timezone?: string }, { name?: string }>;
