@@ -2,10 +2,12 @@
 
 AI customer communication and lead management for UK service businesses.
 
-**Through Phase 2B (native CI pending for Phase 2B):** Next.js application shell, Supabase authentication, businesses,
-memberships, owner/staff roles, PostgreSQL row-level security, business profiles,
-services, service areas and opening hours. No AI, WhatsApp,
-leads, payments, document ingestion, analytics, or advanced dashboard is implemented.
+**Current working branch through Phase 3 (native CI pending):** Next.js application
+shell, Supabase authentication, businesses, memberships, owner/staff roles,
+PostgreSQL row-level security, business profiles, services, service areas, opening
+hours, FAQs, minimal business settings, and tenant-secured lead management with
+notes and quote requests. AI, WhatsApp, payments, document ingestion, analytics,
+and advanced channel integrations are not implemented.
 
 ## Stack
 
@@ -276,10 +278,9 @@ npm test -- --maxWorkers=1 --execArgv=--liftoff-only --execArgv=--wasm-num-compi
 
 These runtime options reduce compiler memory; they do not remove assertions.
 Native authentication/catalog E2E requires the disposable Supabase CI environment.
-Do not run Docker on the 4 GB development machine. Phase 2A native CI remains
-unverified until an explicitly authorized push; the green Phase 1 run does not
-verify this new migration. No Phase 2B, AI, WhatsApp, leads, quotes, or payments are
-included.
+Do not run Docker on the 4 GB development machine. Native verification for new
+migrations runs only in the disposable GitHub Actions Supabase environment. AI,
+WhatsApp, payments, document ingestion and analytics are not included.
 
 ## Phase 2B: service areas and opening hours
 

@@ -78,5 +78,12 @@ export function assertNativeSecurityReport(value: unknown) {
   const report = securityReport.parse(value);
   assertPassingCases(report.testResults.flatMap((file) => file.assertionResults.map((test) => ({
     file: file.name, outcome: test.status,
-  }))), { "tests/security/tenant-isolation.test.ts": 31 });
+  }))), {
+    "tests/security/tenant-isolation.test.ts": 31,
+    "tests/security/catalog-isolation.test.ts": 1,
+    "tests/security/coverage-isolation.test.ts": 1,
+    "tests/security/faq-isolation.test.ts": 1,
+    "tests/security/settings-isolation.test.ts": 1,
+    "tests/security/lead-isolation.test.ts": 1,
+  });
 }

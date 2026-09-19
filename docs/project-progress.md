@@ -1,5 +1,22 @@
 # Codeedge progress and completion sequence
 
+## Phase 3 local completion checkpoint — 19 September 2026
+
+The working branch now includes the first tenant-secured lead-management CRM:
+lead list and detail views, contact details, source attribution, optional service
+links, status updates, internal notes and quote requests. Owners and staff can
+perform day-to-day CRM writes; destructive deletes remain owner-only. All parent
+and child relationships use tenant-qualified foreign keys, server actions derive
+the business from live authenticated membership, and forced RLS independently
+enforces the same tenant boundary.
+
+Focused Phase 3 validation passed before the final full-suite checkpoint: 131
+lead validation/action/RLS tests, followed by 119 lead/CI-hardening tests. The
+native CI reporter now requires every SQL security file and every authenticated
+browser file to execute and pass. Native Supabase, pgTAP and authenticated browser
+verification remain pending the single authorized branch push. No deployment or
+external channel integration occurred.
+
 ## Phase 2C local completion checkpoint — 19 September 2026
 
 Phase 2C now includes tenant-secured FAQ management and minimal business

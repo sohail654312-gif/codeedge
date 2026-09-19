@@ -6,8 +6,8 @@
 * { box-sizing: border-box; }
 body { margin: 0; color: var(--foreground); background: var(--background); font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif; font-size: 16px; line-height: 1.6; }
 a { color: #184fae; text-underline-offset: 4px; }
-button, input { font: inherit; }
-button, a, input { -webkit-tap-highlight-color: transparent; }
+button, input, select { font: inherit; }
+button, a, input, select { -webkit-tap-highlight-color: transparent; }
 :focus-visible { outline: 3px solid #dc8100; outline-offset: 4px; }
 h1, h2, p { margin-top: 0; }
 h1 { font-size: clamp(2rem, 5vw, 3rem); line-height: 1.12; font-weight: 650; letter-spacing: -.04em; margin-bottom: 1rem; }
@@ -28,7 +28,7 @@ p { max-width: 65ch; }
 .form-stack { display: grid; gap: 1.25rem; }
 .field { display: grid; gap: .45rem; }
 label { font-weight: 600; font-size: .95rem; }
-input { width: 100%; min-height: 48px; border: 1px solid #8193a5; background: white; border-radius: .35rem; padding: .65rem .8rem; color: var(--foreground); }
+input, select { width: 100%; min-height: 48px; border: 1px solid #8193a5; background: white; border-radius: .35rem; padding: .65rem .8rem; color: var(--foreground); }
 .button { display: inline-flex; align-items: center; justify-content: center; min-height: 46px; padding: .65rem 1.1rem; border-radius: .35rem; border: 1px solid transparent; cursor: pointer; font-weight: 650; text-decoration: none; line-height: 1.4; }
 .button-primary { background: var(--primary); color: white; }
 .button-primary:hover { background: #194da9; }

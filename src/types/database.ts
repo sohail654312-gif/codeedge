@@ -20,9 +20,20 @@ export type BusinessFaqFields = { question: string; answer: string; is_active: b
 export type BusinessFaq = BusinessFaqFields & { id: string; business_id: string; created_at: string; updated_at: string };
 export type BusinessSettingsFields = { locale: string; lead_notification_email: string; notify_new_leads: boolean };
 export type BusinessSettings = BusinessSettingsFields & { business_id: string; created_at: string; updated_at: string };
+export type LeadStatus = "new" | "contacted" | "qualified" | "won" | "lost";
+export type QuoteRequestStatus = "requested" | "reviewing" | "quoted" | "declined";
+export type LeadFields = { contact_name: string; phone: string; email: string; source: string; service_id: string | null; enquiry_summary: string; status: LeadStatus };
+export type Lead = LeadFields & { id: string; business_id: string; created_by: string | null; created_at: string; updated_at: string };
+export type LeadNoteFields = { body: string };
+export type LeadNote = LeadNoteFields & { id: string; business_id: string; lead_id: string; created_by: string | null; created_at: string; updated_at: string };
+export type QuoteRequestFields = { details: string; status: QuoteRequestStatus };
+export type QuoteRequest = QuoteRequestFields & { id: string; business_id: string; lead_id: string; created_by: string | null; created_at: string; updated_at: string };
 export type Database = {
   public: {
     Tables: {
+      quote_requests: Table<QuoteRequest, QuoteRequestFields & { business_id: string; lead_id: string; created_by: string }, Partial<QuoteRequestFields>>;
+      lead_notes: Table<LeadNote, LeadNoteFields & { business_id: string; lead_id: string; created_by: string }, Partial<LeadNoteFields>>;
+      leads: Table<Lead, LeadFields & { business_id: string; created_by: string }, Partial<LeadFields>>;
       business_settings: Table<BusinessSettings, BusinessSettingsFields & { business_id: string }, Partial<BusinessSettingsFields>>;
       business_faqs: Table<BusinessFaq, BusinessFaqFields & { business_id: string }, Partial<BusinessFaqFields>>;
       service_areas: Table<ServiceArea, ServiceAreaFields & { business_id: string }, Partial<ServiceAreaFields>>;
@@ -35,7 +46,7 @@ export type Database = {
     };
     Views: { [_ in never]: never };
     Functions: { [_ in never]: never };
-    Enums: { business_role: Role; business_status: BusinessStatus; membership_status: MembershipStatus };
+    Enums: { business_role: Role; business_status: BusinessStatus; membership_status: MembershipStatus; lead_status: LeadStatus; quote_request_status: QuoteRequestStatus };
     CompositeTypes: { [_ in never]: never };
   };
 };
