@@ -8,7 +8,39 @@
 - Phase 2C — COMPLETE: FAQ management and minimal business settings.
 - Phase 2D — COMPLETE: Phase 2 security, integration and CI hardening.
 - Phase 3 — COMPLETE: tenant-secured leads, notes and quote requests.
-- Phase 4 — NOT STARTED.
+- Phase 4 — IMPLEMENTED on the working branch; local validation recorded below. Native CI pending.
+- Phase 5 — IMPLEMENTED on the working branch; local validation recorded below. Native CI pending.
+- Phase 6 — NOT STARTED.
+
+## Phase 4 and Phase 5 local implementation — 19 September 2026
+
+Branch: `codex/phase-4-chatbot-and-phase-5-ai-brain`, started from verified
+`47f40c91c24341bc81d2884732731481b4647492`. These changes are not merged or deployed.
+
+Phase 4 adds tenant-qualified conversations/messages, owner-controlled public
+widget IDs, private cookie sessions, reusable hosted chat UI, optional CRM enquiry
+capture and read-only business conversation views. The restricted server database
+role has no bypass privileges; RLS, column grants and private capability functions
+separate public sessions from member dashboard access. The local Phase 4 checkpoint
+passed focused security/unit tests, lint, strict typecheck, production build and
+one browser widget test with mocked transport. Native browser coverage is required
+by the CI gate, not substituted by that mock.
+
+Phase 5 adds a channel-independent knowledge loader, bounded history, provider
+interface, deterministic development provider, grounded fact selection, safe
+fallbacks and atomic response persistence. It reuses existing business knowledge
+and the same CRM. No live paid AI API is connected. No Phase 6 work was started.
+See [website chat](website-chat.md) and [AI brain](ai-brain.md) for setup and limits.
+
+Final local validation passed: **581 automated tests across 22 files**, including
+database/RLS, tenant isolation, chat/CRM integration and AI orchestration tests;
+lint; strict typecheck; production build; and **3 production-browser tests**
+(existing shell plus mocked-transport chat UI in Edge). The focused Phase 5
+AI/chat run also passed 79 tests before that final full run. Native
+Supabase/PostgreSQL and real authenticated chat/browser verification remain
+pending the external CI review after one push. Do not merge or release unless the
+required CI run for the final pushed SHA is green. No CI monitoring is performed
+as part of this implementation task.
 
 GitHub Actions [run 35454848317](https://github.com/sohail654312-gif/codeedge/actions/runs/35454848317)
 passed for tested commit `3bcdc16a3975bd6ec5b6c99f405abb451eaab0e6`.

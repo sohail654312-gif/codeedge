@@ -310,3 +310,12 @@ The verified Phase 2A main commit is `a3397896a29fbdf397b856c556b422f4e10bc9cb`.
 Its post-merge run is https://github.com/sohail654312-gif/codeedge/actions/runs/34740511096.
 Phase 2B needs its own green native CI run after an authorized push. Do not run
 Docker on the 4 GB laptop; retain the constrained-memory local test command above.
+
+## Website chat and knowledge brain
+
+Phase 4/5 setup and limits: [Website chat](docs/website-chat.md) and
+[AI brain](docs/ai-brain.md). Owners can enable a hosted chatbot from the business
+conversation page. Chat uses a server-only restricted database connection and
+reuses existing CRM leads. The provider is deterministic development logic;
+**no live AI API is connected**. Native security and browser verification remain
+required CI gates before merge/release. These additions are not a deployment.

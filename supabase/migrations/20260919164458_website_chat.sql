@@ -1,6 +1,15 @@
 -- No anonymous Data API access. Only the server's restricted connection can use
 -- the private capability functions; JWT members retain read-only dashboard access.
-create role codeedge_chat_api nologin noinherit nobypassrls;
+-- Local database resets can preserve cluster roles. Never silently reuse a
+-- conflicting role with broader attributes or privileges.
+do $$ begin
+  if not exists(select 1 from pg_roles where rolname='codeedge_chat_api') then
+    create role codeedge_chat_api nologin noinherit nobypassrls;
+  elsif exists(select 1 from pg_roles where rolname='codeedge_chat_api' and
+    (rolsuper or rolbypassrls or rolcanlogin or rolinherit or rolcreaterole or rolcreatedb or rolreplication)) then
+    raise exception 'Unsafe pre-existing chat role';
+  end if;
+end $$;
 grant codeedge_chat_api to postgres;
 grant usage on schema public, private to codeedge_chat_api;
 

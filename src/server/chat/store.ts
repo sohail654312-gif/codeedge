@@ -2,8 +2,9 @@ import "server-only";
 import { createHash, randomBytes } from "node:crypto";
 import { Pool } from "pg";
 import { widgetIdSchema } from "@/modules/chat/validation";
+import type { QueryClient } from "@/server/db/query";
 
-export type ChatDb = { query: <T extends Record<string, unknown> = Record<string, unknown>>(sql: string, params?: unknown[]) => Promise<{ rows: T[] }> };
+export type ChatDb = QueryClient;
 export const newSession = () => randomBytes(32).toString("hex");
 export function sessionHash(token: string) {
   if (!/^[a-f0-9]{64}$/.test(token)) throw new Error("Invalid session");
