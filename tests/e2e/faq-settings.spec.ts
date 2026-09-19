@@ -18,6 +18,7 @@ test.describe("local Supabase FAQs and business settings", () => {
     await expect(card).toBeVisible();
     await page.getByLabel("Lead notification email (optional)").fill("alerts@northfield.test");
     await page.getByRole("button", { name: "Save settings" }).click();
+    await expect(page.getByRole("status").filter({ hasText: /^Business settings saved\.$/ })).toBeVisible();
     await page.reload();
     await expect(page.getByLabel("Lead notification email (optional)")).toHaveValue("alerts@northfield.test");
     await page.getByRole("button", { name: "Sign out" }).click();
