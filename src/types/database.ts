@@ -1,4 +1,4 @@
-// Schema-aligned types through the Phase 2C-1 migration.
+// Schema-aligned types through the current migrations.
 // Replace with reviewed `npm run db:types` output when a local Supabase stack is available.
 export type Role = "owner" | "staff";
 export type BusinessStatus = "active" | "suspended";
@@ -18,9 +18,12 @@ export type OpeningHoursFields = { is_closed: boolean; opens_at: string | null; 
 export type OpeningHours = OpeningHoursFields & { business_id: string; weekday: number; created_at: string; updated_at: string };
 export type BusinessFaqFields = { question: string; answer: string; is_active: boolean; display_order: number };
 export type BusinessFaq = BusinessFaqFields & { id: string; business_id: string; created_at: string; updated_at: string };
+export type BusinessSettingsFields = { locale: string; lead_notification_email: string; notify_new_leads: boolean };
+export type BusinessSettings = BusinessSettingsFields & { business_id: string; created_at: string; updated_at: string };
 export type Database = {
   public: {
     Tables: {
+      business_settings: Table<BusinessSettings, BusinessSettingsFields & { business_id: string }, Partial<BusinessSettingsFields>>;
       business_faqs: Table<BusinessFaq, BusinessFaqFields & { business_id: string }, Partial<BusinessFaqFields>>;
       service_areas: Table<ServiceArea, ServiceAreaFields & { business_id: string }, Partial<ServiceAreaFields>>;
       opening_hours: Table<OpeningHours, OpeningHoursFields & { business_id: string; weekday: number }, Partial<OpeningHoursFields>>;

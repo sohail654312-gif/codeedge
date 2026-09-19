@@ -5,17 +5,20 @@ import { signOut } from "@/modules/auth/actions";
 import { Button } from "@/components/ui/button";
 import { ProfileForm, ServiceForm, DeleteCatalogForm } from "@/components/dashboard/catalog-forms";
 import { CoveragePanels } from "@/components/dashboard/coverage-panels";
+import { FaqPanel, SettingsPanel } from "@/components/dashboard/faq-settings-panels";
 
 export default async function BusinessPage({ params }: { params: Promise<{ businessSlug: string }> }) {
   const { client, context } = await requireBusinessPage((await params).businessSlug);
   const { business, role } = context;
-  const [profileResult, serviceResult, areaResult, hoursResult] = await Promise.all([
+  const [profileResult, serviceResult, areaResult, hoursResult, faqResult, settingsResult] = await Promise.all([
     client.from("business_profiles").select("*").eq("business_id", business.id).maybeSingle(),
     client.from("services").select("*").eq("business_id", business.id).order("display_order").order("id"),
     client.from("service_areas").select("*").eq("business_id", business.id).order("display_order").order("id"),
     client.from("opening_hours").select("*").eq("business_id", business.id).order("weekday"),
+    client.from("business_faqs").select("*").eq("business_id", business.id).order("display_order").order("id"),
+    client.from("business_settings").select("*").eq("business_id", business.id).maybeSingle(),
   ]);
-  if (profileResult.error || serviceResult.error || areaResult.error || hoursResult.error) throw new Error("Unable to load business details.");
+  if (profileResult.error || serviceResult.error || areaResult.error || hoursResult.error || faqResult.error || settingsResult.error) throw new Error("Unable to load business details.");
   const profile = profileResult.data;
   const services = serviceResult.data ?? [];
   return <main id="main" className="workspace"><Link className="back-link" href="/dashboard">All businesses</Link><div className="workspace-header"><div><h1>{business.name}</h1><p className="muted">Business workspace</p></div><form action={signOut}><Button variant="secondary">Sign out</Button></form></div>
@@ -35,5 +38,7 @@ export default async function BusinessPage({ params }: { params: Promise<{ busin
       {role === "owner" && <details className="service-card"><summary>Add service</summary><ServiceForm businessId={business.id} /></details>}
     </section>
     <CoveragePanels businessId={business.id} timezone={business.timezone} canEdit={role === "owner"} areas={areaResult.data ?? []} hours={hoursResult.data ?? []} />
+    <FaqPanel businessId={business.id} canEdit={role === "owner"} faqs={faqResult.data ?? []} />
+    <SettingsPanel businessId={business.id} canEdit={role === "owner"} settings={settingsResult.data} />
   </main>;
 }

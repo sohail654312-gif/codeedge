@@ -1,5 +1,18 @@
 # Codeedge progress and completion sequence
 
+## Phase 2C local completion checkpoint — 19 September 2026
+
+Phase 2C now includes tenant-secured FAQ management and minimal business
+settings. Owners can create, edit, activate and delete FAQs and update locale
+and future lead-notification preferences; staff have read-only access. Tenant
+ownership is derived from live authenticated membership in server actions and
+enforced again through forced RLS and restricted column grants.
+
+Focused verification passed: 142 tests across FAQ/settings validation, server
+actions and SQL tenant-isolation suites; lint, strict typecheck and the
+production build also passed. Native Supabase, pgTAP and authenticated browser
+checks remain pending the single Phase 3 branch push. No deployment occurred.
+
 Reviewed on 13 September 2026. This is a progress record, not a release approval.
 
 ## Verified current position
