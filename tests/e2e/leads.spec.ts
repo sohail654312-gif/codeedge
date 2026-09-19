@@ -17,10 +17,10 @@ test.describe("local Supabase lead CRM", () => {
     await page.getByRole("link", { name: "Fictional CRM Customer" }).click();
     await page.getByLabel("New internal note").fill("Call back tomorrow.");
     await page.getByRole("button", { name: "Add note" }).click();
-    await expect(page.getByText("Call back tomorrow.", { exact: true })).toBeVisible();
+    await expect(page.locator("p.plain-text").filter({ hasText: /^Call back tomorrow\.$/ })).toBeVisible();
     await page.getByLabel("Quote request details").first().fill("Prepare an itemised estimate.");
     await page.getByRole("button", { name: "Add quote request" }).click();
-    await expect(page.getByText("Prepare an itemised estimate.", { exact: true })).toBeVisible();
+    await expect(page.locator("p.plain-text").filter({ hasText: /^Prepare an itemised estimate\.$/ })).toBeVisible();
     const leadUrl = page.url();
     await page.goto("/dashboard"); await page.getByRole("button", { name: "Sign out" }).click();
     await page.getByLabel("Email address").fill("bob@codeedge.test");
