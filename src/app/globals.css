@@ -74,3 +74,13 @@ summary { cursor: pointer; font-weight: 600; margin-bottom: 1rem; }
 .catalog-delete { margin-top: 1rem; }
 .detail-row { display: contents; }
 .plain-text, .detail-row dd { white-space: pre-wrap; overflow-wrap: anywhere; }
+/* The reusable chat component stays inside the existing workspace visual system. */
+.chat-widget { max-width: 40rem; margin: 1rem auto; }
+.chat-window { margin-top: 1rem; padding: 1.25rem; }
+.chat-messages { max-height: 24rem; overflow-y: auto; overflow-wrap: anywhere; }
+.chat-message { padding: .75rem; border-radius: .6rem; background: #f0f4f8; }
+.chat-message strong, .chat-message span { display: block; }
+.chat-visitor { margin-left: 1rem; background: #eaf0ff; }
+.chat-widget details { margin-top: 1.5rem; }
+.chat-widget summary { cursor: pointer; margin-bottom: 1rem; }
+.chat-widget textarea, .chat-widget input { max-width: 100%; }

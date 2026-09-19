@@ -22,7 +22,7 @@ export default async function BusinessPage({ params }: { params: Promise<{ busin
   const profile = profileResult.data;
   const services = serviceResult.data ?? [];
   return <main id="main" className="workspace"><Link className="back-link" href="/dashboard">All businesses</Link><div className="workspace-header"><div><h1>{business.name}</h1><p className="muted">Business workspace</p></div><form action={signOut}><Button variant="secondary">Sign out</Button></form></div>
-    <section className="workspace-panel"><h2>Lead management</h2><p>Track enquiries, contact details, internal notes and quote requests.</p><Link className="business-link" href={`/dashboard/${business.slug}/leads`}><strong>Open leads</strong><span>View CRM</span></Link></section>
+    <section className="workspace-panel"><h2>Lead management</h2><p>Track enquiries, contact details, internal notes and quote requests.</p><Link className="business-link" href={`/dashboard/${business.slug}/leads`}><strong>Open leads</strong><span>View CRM</span></Link><Link className="business-link" href={`/dashboard/${business.slug}/conversations`}><strong>Open conversations</strong><span>Website chat</span></Link></section>
     <section className="workspace-panel"><h2>Business details</h2><dl className="details"><dt>Your access</dt><dd>{role === "owner" ? "Owner" : "Staff"}</dd><dt>Time zone</dt><dd>{business.timezone}</dd></dl>
       {role === "owner" ? <BusinessNameForm id={business.id} name={business.name} /> : <p className="muted">Contact your business owner to change these details.</p>}
     </section>

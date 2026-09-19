@@ -31,6 +31,9 @@ export type QuoteRequest = QuoteRequestFields & { id: string; business_id: strin
 export type Database = {
   public: {
     Tables: {
+      chat_widgets: Table<{ id: string; business_id: string; enabled: boolean }, { business_id: string; enabled: boolean }, { enabled?: boolean }>;
+      conversations: Table<{ id: string; business_id: string; widget_id: string; channel: string; lead_id: string | null; created_at: string; updated_at: string; expires_at: string }, never, never>;
+      messages: Table<{ id: string; business_id: string; conversation_id: string; sender: "visitor" | "assistant"; content: string; request_id: string; created_at: string }, never, never>;
       quote_requests: Table<QuoteRequest, QuoteRequestFields & { business_id: string; lead_id: string; created_by: string }, Partial<QuoteRequestFields>>;
       lead_notes: Table<LeadNote, LeadNoteFields & { business_id: string; lead_id: string; created_by: string }, Partial<LeadNoteFields>>;
       leads: Table<Lead, LeadFields & { business_id: string; created_by: string }, Partial<LeadFields>>;

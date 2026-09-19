@@ -20,6 +20,8 @@ export default class NativeIntegrationReporter implements Reporter {
         "tests/e2e/coverage.spec.ts": 2,
         "tests/e2e/faq-settings.spec.ts": 1,
         "tests/e2e/leads.spec.ts": 1,
+        "tests/e2e/chat-native.spec.ts": 1,
+        "tests/e2e/chat-widget.spec.ts": 1,
       });
     } catch (error) {
       console.error(error instanceof Error ? error.message : "Native browser verification failed.");
