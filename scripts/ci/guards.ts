@@ -85,5 +85,7 @@ export function assertNativeSecurityReport(value: unknown) {
     "tests/security/faq-isolation.test.ts": 1,
     "tests/security/settings-isolation.test.ts": 1,
     "tests/security/lead-isolation.test.ts": 1,
+    "tests/security/chat-isolation.test.ts": 1,
+    "tests/security/ai-isolation.test.ts": 1,
   });
 }
