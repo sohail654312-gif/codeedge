@@ -69,10 +69,12 @@ describe("native CI cannot silently downgrade verification", () => {
 });
 
 describe("required integration evidence", () => {
-  const file = "/runner/tests/security/tenant-isolation.test.ts";
   const report = (status = "passed", count = 31) => ({
     success: true,
-    testResults: [{ name: file, status: "passed", assertionResults: Array.from({ length: count }, () => ({ status })) }],
+    testResults: [
+      ["tenant-isolation.test.ts", count], ["catalog-isolation.test.ts", 1], ["coverage-isolation.test.ts", 1],
+      ["faq-isolation.test.ts", 1], ["settings-isolation.test.ts", 1], ["lead-isolation.test.ts", 1],
+    ].map(([name, cases]) => ({ name: `/runner/tests/security/${name}`, status: "passed", assertionResults: Array.from({ length: Number(cases) }, () => ({ status })) })),
   });
   it("accepts complete passing native SQL results", () => {
     expect(() => assertNativeSecurityReport(report())).not.toThrow();
