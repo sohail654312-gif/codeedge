@@ -48,6 +48,29 @@ test.describe("local Supabase authentication", () => {
       await expect(page).toHaveURL(/\/sign-in$/);
     });
   }
+  test("owner can open Security & MFA and begin real Supabase TOTP enrollment", async ({ page }) => {
+    await page.goto("/sign-in");
+    await page.getByLabel("Email address").fill("alice@codeedge.test");
+    await page.getByLabel("Password", { exact: true }).fill("Codeedge-local-only-123!");
+    await page.getByRole("button", { name: "Sign in", exact: true }).click();
+    await page.goto("/dashboard/northfield-plumbing/security");
+    await expect(page.getByRole("heading", { name: "Security & MFA" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "MFA not enabled" })).toBeVisible();
+    await page.getByRole("button", { name: "Set up authenticator app" }).click();
+    await expect(page.getByAltText("Authenticator QR code")).toBeVisible();
+    await expect(page.getByText("If you cannot scan the QR code, enter this temporary setup secret manually:")).toBeVisible();
+    await expect(page.getByLabel("Authenticator code")).toBeVisible();
+  });
+
+  test("staff cannot open owner MFA configuration", async ({ page }) => {
+    await page.goto("/sign-in");
+    await page.getByLabel("Email address").fill("staff@codeedge.test");
+    await page.getByLabel("Password", { exact: true }).fill("Codeedge-local-only-123!");
+    await page.getByRole("button", { name: "Sign in", exact: true }).click();
+    await page.goto("/dashboard/northfield-plumbing/security");
+    await expect(page.getByRole("heading", { name: "Workspace unavailable" })).toBeVisible();
+  });
+
   test("revoked user signs in but receives no business access", async ({ page }) => {
     await page.goto("/sign-in");
     await page.getByLabel("Email address").fill("revoked@codeedge.test");

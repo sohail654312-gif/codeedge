@@ -9,7 +9,7 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 const own = "20000000-0000-4000-8000-000000000001";
 const other = "20000000-0000-4000-8000-000000000002";
 
-function setup(mode: "owner" | "staff" | "revoked" | "anonymous" | "other" | "hidden" = "owner", settingsExists = false) {
+function setup(mode: "owner" | "owner-aal1" | "staff" | "revoked" | "anonymous" | "other" | "hidden" = "owner", settingsExists = false) {
   const calls: { table: string; operation?: string; values?: unknown; filters: unknown[][] }[] = [];
   const from = vi.fn((table: string) => {
     const call = { table, filters: [] } as typeof calls[number]; calls.push(call);
@@ -28,7 +28,7 @@ function setup(mode: "owner" | "staff" | "revoked" | "anonymous" | "other" | "hi
     };
     return chain;
   });
-  vi.mocked(createClient).mockResolvedValue({ from, auth: { getUser: async () => ({ data: { user: mode === "anonymous" ? null : { id: "user-a", email_confirmed_at: "2026-09-19" } }, error: null }) } } as unknown as Awaited<ReturnType<typeof createClient>>);
+  vi.mocked(createClient).mockResolvedValue({ from, auth: { getUser: async () => ({ data: { user: mode === "anonymous" ? null : { id: "user-a", email_confirmed_at: "2026-09-19" } }, error: null }), mfa: { getAuthenticatorAssuranceLevel: async () => ({ data: { currentLevel: mode === "owner-aal1" ? "aal1" : "aal2", nextLevel: "aal2", currentAuthenticationMethods: [] }, error: null }), listFactors: async () => ({ data: { all: [], phone: [], totp: [{ id: "81000000-0000-4000-8000-000000000001", status: "verified", factor_type: "totp" }] }, error: null }) } } } as unknown as Awaited<ReturnType<typeof createClient>>);
   return calls;
 }
 
@@ -60,6 +60,12 @@ describe("FAQ and settings actions use live tenant authorization", () => {
       expect(await action({}, form)).toHaveProperty("error"); expect(calls).toEqual([]);
     });
   }
+
+  it("saveSettings rejects an owner at AAL1 before accessing business settings", async () => {
+    const calls = setup("owner-aal1"); const form = settingsForm();
+    expect(await saveSettings({}, form)).toMatchObject({ error: "Verify MFA before changing privileged owner settings." });
+    expect(calls.every((call) => ["businesses", "business_memberships"].includes(call.table))).toBe(true);
+  });
 
   it("creates an FAQ with the authorized tenant and ignores forged ownership", async () => {
     const calls = setup(); const form = faqForm(); form.delete("faqId"); form.set("business_id", other);

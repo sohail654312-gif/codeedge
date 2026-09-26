@@ -2,7 +2,8 @@
 import { revalidatePath } from "next/cache";
 import { ZodError } from "zod";
 import { createClient } from "@/server/db/client";
-import { AccessError, requireOwner, requireTenant } from "@/server/authorization/tenant";
+import { AccessError } from "@/server/authorization/tenant";
+import { requirePrivilegedOwner } from "@/server/auth/mfa";
 import { selectorSchema } from "@/modules/catalog/validation";
 import { settingsSchema } from "./validation";
 
@@ -18,8 +19,7 @@ export async function saveSettings(_state: SettingsState, form: FormData): Promi
   try {
     const id = selectorSchema.parse(form.get("businessId"));
     const client = await createClient();
-    const context = await requireTenant(client, { id });
-    requireOwner(context);
+    const context = await requirePrivilegedOwner(client, { id });
     const values = settingsSchema.parse({
       locale: form.get("locale"),
       lead_notification_email: form.get("lead_notification_email"),
