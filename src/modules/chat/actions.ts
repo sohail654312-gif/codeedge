@@ -3,10 +3,15 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/server/db/client";
 import { requireOwner, requireTenant } from "@/server/authorization/tenant";
+import { dispatchWhatsAppOutbox } from "@/server/whatsapp/delivery";
 import { widgetIdSchema } from "./validation";
 
 export type ChatActionState = { error?: string; success?: string };
 const replySchema = z.string().trim().min(1, "Write a reply.").max(2000, "Keep the reply under 2,000 characters.");
+const dispatchSchema = z.object({
+  outboxId: z.string().uuid().nullable(),
+  phoneNumberId: z.string().regex(/^[0-9]{5,32}$/).nullable(),
+});
 
 async function conversationContext(form: FormData) {
   const client = await createClient();
@@ -68,6 +73,15 @@ export async function sendConversationReply(_state: ChatActionState, form: FormD
     const requestId = widgetIdSchema.parse(form.get("requestId"));
     const result = await client.rpc("handoff_reply", { target_conversation: conversationId, body, target_request: requestId });
     if (result.error) throw result.error;
+    const dispatch = dispatchSchema.parse(result.data);
+    if (dispatch.outboxId && dispatch.phoneNumberId) {
+      try {
+        await dispatchWhatsAppOutbox(dispatch.phoneNumberId, dispatch.outboxId);
+      } catch {
+        conversationPath(context.business.slug, conversationId);
+        return { error: "Reply saved, but WhatsApp delivery is pending. Submit again to retry safely." };
+      }
+    }
     conversationPath(context.business.slug, conversationId);
     return { success: "Reply sent." };
   } catch { return { error: "Unable to send this reply. Take over the conversation first." }; }
