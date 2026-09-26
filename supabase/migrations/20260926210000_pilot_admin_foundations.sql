@@ -371,7 +371,7 @@ grant execute on function public.operator_list_businesses(),
 to authenticated;
 
 create function public.revoke_staff_membership(target_business uuid,target_user uuid)
-returns void language plpgsql security definer set search_path='' as $
+returns void language plpgsql security definer set search_path='' as $revoke_staff$
 declare
   actor uuid := auth.uid();
   membership_role public.business_role;
@@ -403,7 +403,7 @@ begin
     target_business,actor,'owner','membership.revoke','business_membership',target_user,'success'
   );
 end
-$$;
+$revoke_staff$;
 revoke all on function public.revoke_staff_membership(uuid,uuid) from public,anon;
 grant execute on function public.revoke_staff_membership(uuid,uuid) to authenticated;
 
