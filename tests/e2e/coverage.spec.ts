@@ -9,7 +9,7 @@ async function signIn(page: Page, email: string, business: string) {
 }
 test.describe("local Supabase service areas and opening hours", () => {
   test.skip(process.env.CODEEDGE_E2E_AUTH !== "1", "Requires disposable local Supabase with fictional seeded accounts.");
-  test("owner persists area CRUD and another tenant cannot see it", async ({ page }) => {
+  test("owner persists service-area edits while deletion requires MFA at AAL1", async ({ page }) => {
     test.setTimeout(60000); // Multiple sign-in journeys plus CRUD, not relaxed assertions.
     await signIn(page, "alice@codeedge.test", "Northfield Plumbing");
     const create = page.locator("details").filter({ has: page.locator("summary", { hasText: /^Add service area$/ }) });
@@ -34,9 +34,10 @@ test.describe("local Supabase service areas and opening hours", () => {
     await signIn(page, "alice@codeedge.test", "Northfield Plumbing");
     page.once("dialog", (dialog) => dialog.accept());
     await card.getByRole("button", { name: "Delete service area", exact: true }).click();
-    await expect(card).toHaveCount(0);
+    await expect(card.getByRole("alert")).toHaveText("Verify MFA before changing privileged owner settings.");
+    await expect(card).toBeVisible();
     await page.reload();
-    await expect(card).toHaveCount(0);
+    await expect(card).toBeVisible();
   });
   test("owner saves opening hours and a closed day without times", async ({ page }) => {
     await signIn(page, "alice@codeedge.test", "Northfield Plumbing");
