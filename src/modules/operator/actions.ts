@@ -13,6 +13,7 @@ import {
   operatorEmailSchema,
   operatorUserIdSchema,
 } from "./validation";
+import { reportOperationalEvent } from "@/server/observability";
 
 export type OperatorActionState = { error?: string; success?: string };
 
@@ -24,7 +25,10 @@ function failure(error: unknown): OperatorActionState {
 async function findOrInviteUser(email: string) {
   const admin = createAdminAuthClient();
   const listed = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-  if (listed.error) throw new Error("User directory unavailable.");
+  if (listed.error) {
+    reportOperationalEvent("auth.directory.failed");
+    throw new Error("User directory unavailable.");
+  }
   const existing = listed.data.users.find(
     (user) => user.email?.toLowerCase() === email.toLowerCase(),
   );
@@ -33,7 +37,10 @@ async function findOrInviteUser(email: string) {
   const invited = await admin.auth.admin.inviteUserByEmail(email, {
     redirectTo: `${getEnvironment().NEXT_PUBLIC_APP_URL}/auth/confirm`,
   });
-  if (invited.error || !invited.data.user) throw new Error("Invitation unavailable.");
+  if (invited.error || !invited.data.user) {
+    reportOperationalEvent("auth.invitation.failed");
+    throw new Error("Invitation unavailable.");
+  }
   return invited.data.user;
 }
 

@@ -26,7 +26,7 @@ export async function setChatContext(db: ChatDb, widgetId: string, token: string
   await db.query("select set_config('codeedge.widget',$1,true),set_config('codeedge.session_hash',$2,true)", [widgetId, hash]);
 }
 export async function withChat<T>(widgetId: string, token: string, work: (db: ChatDb) => Promise<T>): Promise<T> {
-  pool ??= new Pool({ connectionString: chatConnection(process.env.CHAT_DATABASE_URL), max: 3, connectionTimeoutMillis: 3000, idleTimeoutMillis: 10000 });
+  pool ??= new Pool({ connectionString: chatConnection(process.env.CHAT_DATABASE_URL), max: 1, connectionTimeoutMillis: 3000, idleTimeoutMillis: 10000, allowExitOnIdle: true });
   const client = await pool.connect();
   let broken = false;
   try {

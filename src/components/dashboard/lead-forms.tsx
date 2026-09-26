@@ -14,7 +14,7 @@ const label = (value: string) => value.replaceAll("_", " ").replace(/^./, (chara
 export function LeadForm({ businessId, services, lead }: { businessId: string; services: Service[]; lead?: Lead }) {
   const [state, action, pending] = useActionState(saveLead, {});
   const prefix = useId();
-  return <form action={action} className="form-stack"><input type="hidden" name="businessId" value={businessId} />{lead && <input type="hidden" name="leadId" value={lead.id} />}
+  return <form action={action} className="form-stack"><input type="hidden" name="businessId" value={businessId} />{lead && <><input type="hidden" name="leadId" value={lead.id} /><input type="hidden" name="expectedUpdatedAt" value={lead.updated_at} /></>}
     <div className="field"><label htmlFor={prefix + "name"}>Contact name</label><input id={prefix + "name"} name="contact_name" defaultValue={lead?.contact_name ?? ""} required maxLength={120} /></div>
     <div className="field"><label htmlFor={prefix + "phone"}>Phone</label><input id={prefix + "phone"} name="phone" type="tel" defaultValue={lead?.phone ?? ""} maxLength={40} /></div>
     <div className="field"><label htmlFor={prefix + "email"}>Email</label><input id={prefix + "email"} name="email" type="email" defaultValue={lead?.email ?? ""} maxLength={254} /></div>
@@ -38,7 +38,7 @@ export function DeleteLeadForm({ businessId, leadId }: { businessId: string; lea
 export function NoteForm({ businessId, leadId, note }: { businessId: string; leadId: string; note?: LeadNote }) {
   const [state, action, pending] = useActionState(saveLeadNote, {});
   const id = useId();
-  return <form action={action} className="form-stack"><input type="hidden" name="businessId" value={businessId} /><input type="hidden" name="leadId" value={leadId} />{note && <input type="hidden" name="noteId" value={note.id} />}
+  return <form action={action} className="form-stack"><input type="hidden" name="businessId" value={businessId} /><input type="hidden" name="leadId" value={leadId} />{note && <><input type="hidden" name="noteId" value={note.id} /><input type="hidden" name="expectedUpdatedAt" value={note.updated_at} /></>}
     <div className="field"><label htmlFor={id}>{note ? "Internal note" : "New internal note"}</label><textarea id={id} name="body" defaultValue={note?.body ?? ""} required maxLength={5000} rows={4} /></div>
     <Notice state={state} /><Button disabled={pending}>{note ? "Save note" : "Add note"}</Button>
   </form>;
@@ -47,7 +47,7 @@ export function NoteForm({ businessId, leadId, note }: { businessId: string; lea
 export function QuoteRequestForm({ businessId, leadId, quoteRequest }: { businessId: string; leadId: string; quoteRequest?: QuoteRequest }) {
   const [state, action, pending] = useActionState(saveQuoteRequest, {});
   const prefix = useId();
-  return <form action={action} className="form-stack"><input type="hidden" name="businessId" value={businessId} /><input type="hidden" name="leadId" value={leadId} />{quoteRequest && <input type="hidden" name="quoteRequestId" value={quoteRequest.id} />}
+  return <form action={action} className="form-stack"><input type="hidden" name="businessId" value={businessId} /><input type="hidden" name="leadId" value={leadId} />{quoteRequest && <><input type="hidden" name="quoteRequestId" value={quoteRequest.id} /><input type="hidden" name="expectedUpdatedAt" value={quoteRequest.updated_at} /></>}
     <div className="field"><label htmlFor={prefix + "details"}>Quote request details</label><textarea id={prefix + "details"} name="details" defaultValue={quoteRequest?.details ?? ""} required maxLength={5000} rows={4} /></div>
     <div className="field"><label htmlFor={prefix + "status"}>Quote request status</label><select id={prefix + "status"} name="status" defaultValue={quoteRequest?.status ?? "requested"}>{quoteStatuses.map((status) => <option key={status} value={status}>{label(status)}</option>)}</select></div>
     <Notice state={state} /><Button disabled={pending}>{quoteRequest ? "Save quote request" : "Add quote request"}</Button>

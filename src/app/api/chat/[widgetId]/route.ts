@@ -4,6 +4,7 @@ import { widgetIdSchema, chatRequestSchema } from "@/modules/chat/validation";
 import { newSession, withChat } from "@/server/chat/store";
 import { processChat } from "@/server/chat/service";
 import { readChatBody } from "@/server/chat/http";
+import { reportOperationalEvent } from "@/server/observability";
 
 export const runtime = "nodejs";
 export async function POST(request: NextRequest, { params }: { params: Promise<{ widgetId: string }> }) {
@@ -22,6 +23,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (!existing) response.cookies.set(cookieName, token, { httpOnly: true, secure: origin.startsWith("https:"), sameSite: "strict", path: `/api/chat/${widgetId}`, maxAge: 86400 });
     return response;
   } catch {
+    reportOperationalEvent("chat.request.failed", "warn");
     return NextResponse.json({ error: "Chat is unavailable or the request could not be accepted. Please try again later." }, { status: 400, headers });
   }
 }

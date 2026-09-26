@@ -38,13 +38,13 @@ function setup(mode: Mode = "owner") {
 function leadForm(update = false) {
   const form = new FormData();
   for (const [key, value] of Object.entries({ businessId: own, contact_name: "Alex Example", phone: "020 7000 0000", email: "", source: "manual", service_id: "", enquiry_summary: "Needs a quote.", status: "new" })) form.set(key, value);
-  if (update) form.set("leadId", leadId);
+  if (update) { form.set("leadId", leadId); form.set("expectedUpdatedAt", "2026-09-27T00:00:00.000Z"); }
   return form;
 }
 function childForm(kind: "note" | "quote", update = false) {
   const form = new FormData(); form.set("businessId", own); form.set("leadId", leadId);
-  if (kind === "note") { form.set("body", "Call tomorrow."); if (update) form.set("noteId", recordId); }
-  else { form.set("details", "Prepare estimate."); form.set("status", "requested"); if (update) form.set("quoteRequestId", recordId); }
+  if (kind === "note") { form.set("body", "Call tomorrow."); if (update) { form.set("noteId", recordId); form.set("expectedUpdatedAt", "2026-09-27T00:00:00.000Z"); } }
+  else { form.set("details", "Prepare estimate."); form.set("status", "requested"); if (update) { form.set("quoteRequestId", recordId); form.set("expectedUpdatedAt", "2026-09-27T00:00:00.000Z"); } }
   return form;
 }
 
@@ -90,7 +90,7 @@ describe("lead actions enforce live tenant authorization", () => {
   });
   it("scopes lead updates to tenant and record", async () => {
     const calls = setup("hidden-write"); expect(await saveLead({}, leadForm(true))).toHaveProperty("error");
-    expect(calls.find((call) => call.operation === "update")?.filters).toEqual([["business_id", own], ["id", leadId]]);
+    expect(calls.find((call) => call.operation === "update")?.filters).toEqual([["business_id", own], ["id", leadId], ["updated_at", "2026-09-27T00:00:00.000Z"]]);
   });
   it.each([["note", saveLeadNote], ["quote", saveQuoteRequest]] as const)("creates %s only after a tenant-scoped lead lookup", async (kind, action) => {
     const calls = setup("staff"); expect(await action({}, childForm(kind))).toHaveProperty("success");
@@ -104,8 +104,22 @@ describe("lead actions enforce live tenant authorization", () => {
   it.each([["note", saveLeadNote], ["quote", saveQuoteRequest]] as const)("scopes %s updates by tenant, lead and record", async (kind, action) => {
     const calls = setup("hidden-write"); expect(await action({}, childForm(kind, true))).toHaveProperty("error");
     const table = kind === "note" ? "lead_notes" : "quote_requests";
-    expect(calls.find((call) => call.table === table)?.filters).toEqual([["business_id", own], ["lead_id", leadId], ["id", recordId]]);
+    expect(calls.find((call) => call.table === table)?.filters).toEqual([["business_id", own], ["lead_id", leadId], ["id", recordId], ["updated_at", "2026-09-27T00:00:00.000Z"]]);
   });
+  it("requires the version timestamp before updating a staff-editable CRM record", async () => {
+    setup("staff");
+    const form = leadForm(true);
+    form.delete("expectedUpdatedAt");
+    await expect(saveLead({}, form)).resolves.toHaveProperty("error");
+  });
+
+  it("reports a stale edit instead of overwriting a newer CRM value", async () => {
+    setup("hidden-write");
+    await expect(saveLead({}, leadForm(true))).resolves.toEqual({
+      error: "This record changed since you opened it. Refresh and try again.",
+    });
+  });
+
   it("rejects invalid lead values before a write", async () => {
     const calls = setup(); const form = leadForm(); form.set("phone", "");
     expect(await saveLead({}, form)).toHaveProperty("error"); expect(calls.some((call) => call.operation)).toBe(false);

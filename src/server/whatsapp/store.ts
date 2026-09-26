@@ -26,9 +26,10 @@ export async function setWhatsAppContext(db: WhatsAppDb, value: string) {
 export async function withWhatsApp<T>(value: string, work: (db: WhatsAppDb) => Promise<T>): Promise<T> {
   pool ??= new Pool({
     connectionString: whatsappConnection(process.env.WHATSAPP_DATABASE_URL),
-    max: 3,
+    max: 1,
     connectionTimeoutMillis: 3000,
     idleTimeoutMillis: 10000,
+    allowExitOnIdle: true,
   });
   const client = await pool.connect();
   let broken = false;

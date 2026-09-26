@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { QueryClient } from "@/server/db/query";
 import { loadBrainContext } from "./context";
 import { DeterministicProvider, type AiProvider, type BrainInput } from "./provider";
+import { reportOperationalEvent } from "@/server/observability";
 
 export const fallback = "I don't have confirmed information to answer that. You can leave your name, a phone number or email, and an enquiry for this business. Please avoid sensitive information.";
 const selection = z.object({ factKeys: z.array(z.string().max(40)).max(7), nextStep: z.enum(["none", "enquiry"]) }).strict();
@@ -23,7 +24,10 @@ export async function answerFromContext(input: BrainInput, provider: AiProvider,
     // append unverified prices, promises, prompts or customer data.
     const answer = selected.join("\n\n") + (parsed.nextStep === "enquiry" ? "\n\nYou can leave an enquiry with this business." : "");
     return answer.length <= 4000 ? answer : fallback;
-  } catch { return fallback; }
+  } catch {
+    reportOperationalEvent("ai.provider.fallback", "warn");
+    return fallback;
+  }
   finally { if (timer) clearTimeout(timer); controller.abort(); }
 }
 export async function generateReply(db: QueryClient, conversationId: string, provider: AiProvider = new DeterministicProvider()) {

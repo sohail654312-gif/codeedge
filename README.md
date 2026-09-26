@@ -2,7 +2,7 @@
 
 AI customer communication and lead management for UK service businesses.
 
-**Current MVP scope through Phase 8B and final-completion Attempt 1:** Next.js,
+**Current MVP scope through Phase 8B, final-completion Attempt 1, and the Attempt 2 candidate:** Next.js,
 Supabase authentication, invitation-only owner/staff tenancy, forced RLS, business
 knowledge, CRM, Website Chat, grounded AI Brain, human handoff/shared conversations,
 trusted WhatsApp channel foundations, owner MFA/AAL2 enforcement, and bounded
@@ -237,12 +237,18 @@ all lint rules remain enabled and lint passes. npm may print peer-range warnings
 Clean-install resolution succeeds. Remove the adapter when upstream plugins support
 ESLint 10 directly. Next.js also generates `AGENTS.md`/`CLAUDE.md` on first dev start.
 
-This remains a pre-pilot MVP until the final Attempt 2 closure is complete. Owner
-and operator MFA, operator/member administration, audit evidence, expanded Website
-Chat abuse controls, and a dependency-aware readiness endpoint are implemented.
-Attempt 2 still owns production SMTP verification, backups/restoration, monitoring,
-release/rollback rehearsal, remaining capacity/concurrency/pagination work and the
-final clean-room pilot decision. See `docs/pilot-readiness-attempt-1.md`.
+The Attempt 2 candidate closes the remaining repository-side operational gaps:
+structured non-sensitive failure signals, pilot-scale direct-channel pool bounds,
+stale-write protection for staff-editable CRM records, bounded growing CRM reads,
+a mandatory disposable backup/restore rehearsal, and an exact-SHA release/rollback
+rehearsal. No Attempt 2 database migration is introduced.
+
+A real hosted pilot is still a separate operational gate. Hosted SMTP delivery,
+the selected hosted Supabase backup/restore product, alert routing, real WhatsApp
+provider traffic when that channel is used, the business/legal retention decision,
+and hosted smoke tests require external verification. No production deployment is
+authorized by this repository work. See `docs/pilot-readiness-attempt-2.md` and
+`docs/operations/pilot-runbook.md`.
 
 Use separate dev/staging/production projects. Select London for the production
 database. Never connect preview builds or fixture scripts to production. Every future

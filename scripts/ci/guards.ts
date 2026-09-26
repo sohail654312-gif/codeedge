@@ -5,7 +5,7 @@ const loopbackHosts = new Set(["localhost", "127.0.0.1", "[::1]"]);
 
 export const requiredSteps = {
   application: ["install", "lint", "typecheck", "tests", "build", "browser_install", "browser"],
-  native: ["install", "start", "migrate", "environment", "pgtap", "security", "security_report", "seed", "build", "browser_install", "browser"],
+  native: ["install", "start", "migrate", "environment", "pgtap", "security", "security_report", "seed", "restore_rehearsal", "build", "browser_install", "browser", "release_rehearsal"],
 } as const;
 
 export function assertRequiredSteps(value: unknown, stage: keyof typeof requiredSteps) {

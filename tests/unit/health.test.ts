@@ -12,7 +12,7 @@ function setValidEnvironment() {
   vi.stubEnv("CHAT_DATABASE_URL", "postgres://postgres:postgres@127.0.0.1:54322/postgres");
 }
 
-afterEach(() => vi.unstubAllEnvs());
+afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); });
 
 describe("production readiness boundary", () => {
   it("is ready only when public configuration, Supabase and chat capability are healthy", async () => {
@@ -36,7 +36,19 @@ describe("production readiness boundary", () => {
   it("rejects partially configured WhatsApp provider state without exposing values", async () => {
     setValidEnvironment();
     vi.stubEnv("WHATSAPP_ACCESS_TOKEN", "private-token");
+    const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
     const fetchImpl = vi.fn(async () => new Response("ok", { status: 200 })) as unknown as typeof fetch;
     await expect(isApplicationReady({ fetchImpl, checkChat: async () => true })).resolves.toBe(false);
+    expect(error).toHaveBeenCalledWith(expect.stringContaining("readiness.whatsapp_configuration.failed"));
+    expect(JSON.stringify(error.mock.calls)).not.toContain("private-token");
+  });
+
+  it("records only a safe dependency label when readiness fails", async () => {
+    setValidEnvironment();
+    const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const fetchImpl = vi.fn(async () => new Response("provider-secret-body", { status: 503 })) as unknown as typeof fetch;
+    await expect(isApplicationReady({ fetchImpl, checkChat: async () => true })).resolves.toBe(false);
+    expect(error).toHaveBeenCalledWith(expect.stringContaining("readiness.supabase.failed"));
+    expect(JSON.stringify(error.mock.calls)).not.toContain("provider-secret-body");
   });
 });
