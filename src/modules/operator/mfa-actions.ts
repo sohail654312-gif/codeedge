@@ -54,6 +54,7 @@ async function verifyCode(client: SupabaseClient<Database>, factorId: string, co
 export async function beginOperatorMfaEnrollment(
   _state: OperatorMfaActionState,
 ): Promise<OperatorMfaActionState> {
+  void _state;
   try {
     const client = await operatorClient();
     const factors = await client.auth.mfa.listFactors();
@@ -84,6 +85,7 @@ export async function verifyOperatorMfa(
   _state: OperatorMfaActionState,
   form: FormData,
 ): Promise<OperatorMfaActionState> {
+  void _state;
   let destination = "";
   try {
     const factorId = mfaFactorIdSchema.parse(form.get("factorId"));
