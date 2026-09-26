@@ -139,14 +139,21 @@ describe("operator and membership administration isolation", () => {
   });
 
   it("owner at AAL2 can revoke staff but cannot revoke an owner", async () => {
+    await db.exec("RESET ROLE");
+    await db.query(
+      "insert into public.business_memberships(business_id,user_id,role,status) values($1,$2,'staff','active') on conflict(business_id,user_id) do update set role='staff',status='active'",
+      [f.businessA, newStaff],
+    );
     await authenticate(db, f.ownerA, "aal2");
-    await db.query("select public.revoke_staff_membership($1,$2)", [f.businessA, f.staffA]);
-    expect((await db.query("select status from public.business_memberships where user_id=$1", [f.staffA])).rows)
+    await db.query("select public.revoke_staff_membership($1,$2)", [f.businessA, newStaff]);
+    expect((await db.query("select status from public.business_memberships where user_id=$1", [newStaff])).rows)
       .toEqual([{ status: "revoked" }]);
-    await expect(db.query(
+    await expectDatabaseError(
+      db,
       "select public.revoke_staff_membership($1,$2)",
       [f.businessA, f.ownerA],
-    )).rejects.toThrow(/Staff membership unavailable/);
+      /Staff membership unavailable/,
+    );
   });
 
   it("AAL1 cannot bypass Phase 8B privileged owner operations through direct SQL/Data API semantics", async () => {
