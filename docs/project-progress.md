@@ -1,5 +1,26 @@
 # Codeedge progress and completion sequence
 
+## Final-completion Attempt 2 candidate — 27 September 2026
+
+Starting main: `707a23b3998ac216e2e39f3d052faea4ed9a5066`.
+
+Attempt 1 is merged and post-merge green. Attempt 2 is the final production/pilot
+closure workstream and must not be counted as complete until its final branch,
+pull-request and post-merge Foundation Checks are green.
+
+The Attempt 2 candidate adds non-sensitive operational failure signals; conservative
+Website Chat/WhatsApp direct-database pool bounds; optimistic concurrency guards for
+staff-editable CRM records; bounded recent lead/note/quote views; a required
+disposable application-data backup/restore rehearsal; and an exact-SHA,
+schema-compatible release/rollback rehearsal. Attempt 2 introduces no database
+migration.
+
+External hosted verification is deliberately not fabricated. Production SMTP,
+hosted backup/restore, alert routing, real WhatsApp traffic when used, retention
+policy approval, and hosted smoke tests remain external pilot gates. The repository
+can reach technical completion while production go-live remains blocked on those
+applicable items. See `docs/pilot-readiness-attempt-2.md`.
+
 ## Current final-completion state — 26 September 2026
 
 Main entered Attempt 1 at `779181e08d8f0cf359b9ffa0b0899fa025984f82`

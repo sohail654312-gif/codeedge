@@ -65,6 +65,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -102,6 +103,11 @@ jobs:
       - name: Production browser checks with real local Supabase authentication
         id: browser
         run: npm run test:e2e
+      - name: Release and schema-compatible rollback rehearsal
+        id: release_rehearsal
+        run: node scripts/ci/release-candidate-rehearsal.mjs
+        env:
+          CODEEDGE_RELEASE_BASE_SHA: 707a23b3998ac216e2e39f3d052faea4ed9a5066
       - name: Verify every required native integration step executed
         id: verify
         if: ${{ always() }}

@@ -86,6 +86,19 @@ describe("WhatsApp webhook and provider boundaries", () => {
     });
   });
 
+  it("fails closed when the provider rejects delivery without exposing its response body", async () => {
+    const fetchMock = vi.fn<(input: string | URL | Request, init?: RequestInit) => Promise<Response>>();
+    fetchMock.mockResolvedValue(new Response("provider-private-error", { status: 503 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const transport = new MetaWhatsAppTransport({
+      WHATSAPP_ACCESS_TOKEN: "fictional-access-token-long-enough",
+      WHATSAPP_GRAPH_VERSION: "v99.0",
+    });
+    await expect(transport.sendText({
+      phoneNumberId: "15550000001", to: "447700900111", body: "Hello",
+    }, new AbortController().signal)).rejects.toThrow("WhatsApp provider rejected delivery (503)");
+  });
+
   it.each([
     undefined,
     "https://example.test",

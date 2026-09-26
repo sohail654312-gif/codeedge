@@ -5,6 +5,7 @@ import { createClient } from "@/server/db/client";
 import { getEnvironment } from "@/server/env";
 import { verifiedUser } from "@/server/authorization/tenant";
 import { emailSchema, loginSchema, passwordSchema } from "./validation";
+import { reportOperationalEvent } from "@/server/observability";
 
 export type AuthFormState = { error?: string; success?: string };
 export async function signIn(_state: AuthFormState, form: FormData): Promise<AuthFormState> {
@@ -14,7 +15,10 @@ export async function signIn(_state: AuthFormState, form: FormData): Promise<Aut
     const client = await createClient();
     const { error } = await client.auth.signInWithPassword(parsed.data);
     if (error) return { error: "Unable to sign in. Check your details and that your email is verified." };
-  } catch { return { error: "Sign-in is unavailable. Please try again shortly." }; }
+  } catch {
+    reportOperationalEvent("auth.signin.unavailable");
+    return { error: "Sign-in is unavailable. Please try again shortly." };
+  }
   redirect("/dashboard");
 }
 
@@ -30,8 +34,12 @@ export async function requestPasswordReset(_state: AuthFormState, form: FormData
   if (!email.success) return { error: "Enter a valid email address." };
   try {
     const client = await createClient();
-    await client.auth.resetPasswordForEmail(email.data, { redirectTo: `${getEnvironment().NEXT_PUBLIC_APP_URL}/auth/confirm` });
-  } catch { /* Do not reveal account existence or mail delivery state. */ }
+    const { error } = await client.auth.resetPasswordForEmail(email.data, { redirectTo: `${getEnvironment().NEXT_PUBLIC_APP_URL}/auth/confirm` });
+    if (error) reportOperationalEvent("auth.recovery.delivery_failed");
+  } catch {
+    reportOperationalEvent("auth.recovery.delivery_failed");
+    /* Do not reveal account existence or mail delivery state. */
+  }
   return { success: "If that address has an account, a password reset email will arrive shortly." };
 }
 
