@@ -15,6 +15,7 @@ insert into public.business_memberships(business_id,user_id,role) values
 
 set local role authenticated;
 set local request.jwt.claim.sub = '40000000-0000-4000-8000-000000000001';
+set local request.jwt.claims = '{"sub":"40000000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal2"}';
 select is((select count(*) from public.businesses where slug='pgtap-business-a'),1::bigint,'A reads A');
 select is((select count(*) from public.businesses where slug='pgtap-business-b'),0::bigint,'A cannot read B');
 select is((select count(*) from public.business_memberships where business_id='50000000-0000-4000-8000-000000000002'),0::bigint,'A cannot read B memberships');
@@ -23,6 +24,7 @@ select is((select name from public.businesses where slug='pgtap-business-a'),'Re
 select throws_ok($$update public.business_memberships set role='owner'$$,'42501',null,'membership changes denied');
 
 set local request.jwt.claim.sub = '40000000-0000-4000-8000-000000000002';
+set local request.jwt.claims = '{"sub":"40000000-0000-4000-8000-000000000002","role":"authenticated","aal":"aal2"}';
 select is((select count(*) from public.businesses where slug='pgtap-business-b'),1::bigint,'B reads B');
 select is((select count(*) from public.businesses where slug='pgtap-business-a'),0::bigint,'B cannot read A');
 select is((select count(*) from public.business_memberships where business_id='50000000-0000-4000-8000-000000000001'),0::bigint,'B cannot read A memberships');
@@ -35,6 +37,7 @@ select is((select count(*) from public.business_memberships),0::bigint,'revocati
 
 set local role anon;
 set local request.jwt.claim.sub = '';
+set local request.jwt.claims = '{"role":"anon"}';
 select throws_ok('select * from public.businesses','42501',null,'anonymous business access denied');
 select throws_ok('select * from public.business_memberships','42501',null,'anonymous membership access denied');
 reset role;
