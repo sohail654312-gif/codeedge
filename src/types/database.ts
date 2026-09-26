@@ -29,12 +29,18 @@ export type LeadNote = LeadNoteFields & { id: string; business_id: string; lead_
 export type QuoteRequestFields = { details: string; status: QuoteRequestStatus };
 export type QuoteRequest = QuoteRequestFields & { id: string; business_id: string; lead_id: string; created_by: string | null; created_at: string; updated_at: string };
 export type ConversationHandling = "ai" | "human";
+export type ConversationChannel = "web_chat" | "whatsapp";
+export type WhatsAppOutboxStatus = "pending" | "sent" | "failed";
 export type Database = {
   public: {
     Tables: {
       chat_widgets: Table<{ id: string; business_id: string; enabled: boolean }, { business_id: string; enabled: boolean }, { enabled?: boolean }>;
-      conversations: Table<{ id: string; business_id: string; widget_id: string; channel: string; lead_id: string | null; handling_mode: ConversationHandling; assigned_to: string | null; taken_over_by: string | null; taken_over_at: string | null; created_at: string; updated_at: string; expires_at: string }, never, never>;
+      conversations: Table<{ id: string; business_id: string; widget_id: string | null; channel: ConversationChannel; lead_id: string | null; handling_mode: ConversationHandling; assigned_to: string | null; taken_over_by: string | null; taken_over_at: string | null; created_at: string; updated_at: string; expires_at: string | null }, never, never>;
       messages: Table<{ id: string; business_id: string; conversation_id: string; sender: "visitor" | "assistant" | "member"; content: string; request_id: string; created_by: string | null; created_at: string }, never, never>;
+      whatsapp_channels: Table<{ id: string; business_id: string; phone_number_id: string; business_account_id: string; display_phone_number: string; enabled: boolean; created_at: string; updated_at: string }, never, never>;
+      whatsapp_threads: Table<{ id: string; business_id: string; channel_id: string; wa_contact_id: string; conversation_id: string; profile_name: string; created_at: string; updated_at: string }, never, never>;
+      whatsapp_inbound_events: Table<{ provider_message_id: string; business_id: string; channel_id: string; conversation_id: string; received_at: string }, never, never>;
+      whatsapp_outbox: Table<{ id: string; business_id: string; channel_id: string; conversation_id: string; message_id: string; recipient_id: string; body: string; source_event_id: string | null; status: WhatsAppOutboxStatus; provider_message_id: string | null; attempt_count: number; last_error: string | null; created_at: string; updated_at: string }, never, never>;
       quote_requests: Table<QuoteRequest, QuoteRequestFields & { business_id: string; lead_id: string; created_by: string }, Partial<QuoteRequestFields>>;
       lead_notes: Table<LeadNote, LeadNoteFields & { business_id: string; lead_id: string; created_by: string }, Partial<LeadNoteFields>>;
       leads: Table<Lead, LeadFields & { business_id: string; created_by: string }, Partial<LeadFields>>;
@@ -52,7 +58,7 @@ export type Database = {
     Functions: {
       handoff_take_over: { Args: { target_conversation: string; target_assignee?: string | null }; Returns: undefined };
       handoff_resume_ai: { Args: { target_conversation: string }; Returns: undefined };
-      handoff_reply: { Args: { target_conversation: string; body: string; target_request: string }; Returns: undefined };
+      handoff_reply: { Args: { target_conversation: string; body: string; target_request: string }; Returns: { outboxId: string | null; phoneNumberId: string | null } };
     };
     Enums: { business_role: Role; business_status: BusinessStatus; membership_status: MembershipStatus; lead_status: LeadStatus; quote_request_status: QuoteRequestStatus; conversation_handling: ConversationHandling };
     CompositeTypes: { [_ in never]: never };

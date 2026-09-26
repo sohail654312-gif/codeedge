@@ -73,7 +73,7 @@ describe("required integration evidence", () => {
     success: true,
     testResults: [
       ["tenant-isolation.test.ts", count], ["catalog-isolation.test.ts", 1], ["coverage-isolation.test.ts", 1],
-      ["faq-isolation.test.ts", 1], ["settings-isolation.test.ts", 1], ["lead-isolation.test.ts", 1], ["chat-isolation.test.ts", 1], ["ai-isolation.test.ts", 1], ["handoff-isolation.test.ts", 1],
+      ["faq-isolation.test.ts", 1], ["settings-isolation.test.ts", 1], ["lead-isolation.test.ts", 1], ["chat-isolation.test.ts", 1], ["ai-isolation.test.ts", 1], ["handoff-isolation.test.ts", 1], ["whatsapp-isolation.test.ts", 1],
     ].map(([name, cases]) => ({ name: `/runner/tests/security/${name}`, status: "passed", assertionResults: Array.from({ length: Number(cases) }, () => ({ status })) })),
   });
   it("accepts complete passing native SQL results", () => {
