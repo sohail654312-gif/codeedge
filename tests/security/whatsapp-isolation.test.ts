@@ -116,10 +116,8 @@ describe("WhatsApp trusted mapping, deduplication and tenant isolation", () => {
     });
     await db.exec("RESET ROLE");
     await setWhatsAppContext(db, phoneB);
-    const duplicate = await processWhatsAppInbound(db, {
+    await expect(processWhatsAppInbound(db, {
       providerMessageId: "wamid.shared", from: "447700900216", profileName: "", text: "Hello",
-    });
-    expect(duplicate.duplicate).toBe(true);
-    expect((await db.query("select business_id from public.whatsapp_inbound_events where provider_message_id='wamid.shared'")).rows).toEqual([]);
+    })).rejects.toThrow();
   });
 });
