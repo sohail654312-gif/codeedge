@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 test.describe("local Supabase FAQs and business settings", () => {
   test.skip(process.env.CODEEDGE_E2E_AUTH !== "1", "Requires disposable local Supabase with fictional seeded accounts.");
-  test("owner persists FAQ CRUD and settings while another tenant cannot see the FAQ", async ({ page }) => {
+  test("owner persists FAQ CRUD while privileged settings require MFA at AAL1", async ({ page }) => {
     test.setTimeout(60000);
     await page.goto("/sign-in");
     await page.getByLabel("Email address").fill("alice@codeedge.test");
@@ -18,9 +18,9 @@ test.describe("local Supabase FAQs and business settings", () => {
     await expect(card).toBeVisible();
     await page.getByLabel("Lead notification email (optional)").fill("alerts@northfield.test");
     await page.getByRole("button", { name: "Save settings" }).click();
-    await expect(page.getByRole("status").filter({ hasText: /^Business settings saved\.$/ })).toBeVisible();
+    await expect(page.getByRole("alert").filter({ hasText: /^Verify MFA before changing privileged owner settings\.$/ })).toBeVisible();
     await page.reload();
-    await expect(page.getByLabel("Lead notification email (optional)")).toHaveValue("alerts@northfield.test");
+    await expect(page.getByLabel("Lead notification email (optional)")).not.toHaveValue("alerts@northfield.test");
     await page.getByRole("button", { name: "Sign out" }).click();
     await page.getByLabel("Email address").fill("bob@codeedge.test");
     await page.getByLabel("Password", { exact: true }).fill("Codeedge-local-only-123!");

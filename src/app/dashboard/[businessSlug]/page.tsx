@@ -26,6 +26,7 @@ export default async function BusinessPage({ params }: { params: Promise<{ busin
     <section className="workspace-panel"><h2>Business details</h2><dl className="details"><dt>Your access</dt><dd>{role === "owner" ? "Owner" : "Staff"}</dd><dt>Time zone</dt><dd>{business.timezone}</dd></dl>
       {role === "owner" ? <BusinessNameForm id={business.id} name={business.name} /> : <p className="muted">Contact your business owner to change these details.</p>}
     </section>
+    {role === "owner" && <section className="workspace-panel"><h2>Security</h2><p>Protect privileged owner settings with an authenticator app.</p><Link className="business-link" href={"/dashboard/" + business.slug + "/security"}><strong>Security &amp; MFA</strong><span>Manage owner MFA</span></Link></section>}
     <section className="workspace-panel catalog-panel"><h2>Business profile</h2>
       {role === "owner" ? <><ProfileForm key={profile?.updated_at ?? "new"} businessId={business.id} profile={profile} />{profile && <DeleteCatalogForm businessId={business.id} />}</>
         : profile ? <dl className="details">{Object.entries({ "Trading name": profile.trading_name, Phone: profile.phone, Email: profile.email, Website: profile.website, Address: profile.address, Description: profile.description, Trade: profile.category, "Logo description": profile.logo_alt }).map(([label, value]) => <div className="detail-row" key={label}><dt>{label}</dt><dd>{value || "Not provided"}</dd></div>)}</dl> : <p>No profile details yet.</p>}
