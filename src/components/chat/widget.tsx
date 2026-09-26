@@ -1,7 +1,7 @@
 "use client";
 import { useRef, useState, type FormEvent } from "react";
 
-type Message = { sender: "visitor" | "assistant"; content: string; created_at: string };
+type Message = { sender: "visitor" | "assistant" | "member"; content: string; created_at: string };
 export function ChatWidget({ widgetId }: { widgetId: string }) {
   const [open, setOpen] = useState(false);
   const [ready, setReady] = useState(false);
@@ -9,6 +9,7 @@ export function ChatWidget({ widgetId }: { widgetId: string }) {
   const [error, setError] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [contactSaved, setContactSaved] = useState(false);
+  const [humanHandoff, setHumanHandoff] = useState(false);
   const [content, setContent] = useState("");
   const pending = useRef<{ content: string; requestId: string } | null>(null);
   const launcher = useRef<HTMLButtonElement>(null);
@@ -17,8 +18,8 @@ export function ChatWidget({ widgetId }: { widgetId: string }) {
     try {
       const response = await fetch(`/api/chat/${widgetId}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       if (!response.ok) throw new Error("Chat could not accept this request. Check your details or try again in a moment.");
-      const result = await response.json() as { messages: Message[]; contactSaved: boolean };
-      setMessages(result.messages); setContactSaved(result.contactSaved); setReady(true);
+      const result = await response.json() as { messages: Message[]; contactSaved: boolean; humanHandoff: boolean };
+      setMessages(result.messages); setContactSaved(result.contactSaved); setHumanHandoff(result.humanHandoff); setReady(true);
       return true;
     } catch (failure) { setError(failure instanceof Error ? failure.message : "Chat unavailable."); return false; }
     finally { setBusy(false); }
@@ -33,12 +34,14 @@ export function ChatWidget({ widgetId }: { widgetId: string }) {
     event.preventDefault();
     await request({ action: "contact", ...Object.fromEntries(new FormData(event.currentTarget)) });
   }
+  const senderLabel = (sender: Message["sender"]) => sender === "visitor" ? "You" : sender === "member" ? "Business team" : "Assistant";
   return <div className="chat-widget">
     <button ref={launcher} type="button" className="button" aria-expanded={open} aria-controls="business-chat" onClick={() => { setOpen(!open); if (!open && !ready) void request({ action: "start" }); }}>Chat with this business</button>
     {open && <section id="business-chat" className="workspace-panel chat-window" aria-label="Business chat" onKeyDown={(event) => { if (event.key === "Escape") { setOpen(false); launcher.current?.focus(); } }}>
       <div className="workspace-header"><h2>Business chat</h2><button type="button" onClick={() => { setOpen(false); launcher.current?.focus(); }} aria-label="Close chat">Close</button></div>
-      <p className="muted">Ask a question, or leave an enquiry. This is an automated assistant. Chat sessions last up to 24 hours; the business can review your messages. Avoid sensitive information.</p>
-      <div className="chat-messages" role="log" aria-label="Chat messages" aria-live="polite">{messages.map((message, index) => <p key={index} className={`chat-message chat-${message.sender}`}><strong>{message.sender === "visitor" ? "You" : "Assistant"}</strong><span className="plain-text">{message.content}</span></p>)}</div>
+      <p className="muted">Ask a question, or leave an enquiry. Chat sessions last up to 24 hours; the business can review your messages. Avoid sensitive information.</p>
+      {humanHandoff ? <p role="status">A business team member is handling this conversation. Automated replies are paused.</p> : <p className="muted">Replies are currently provided by the automated assistant.</p>}
+      <div className="chat-messages" role="log" aria-label="Chat messages" aria-live="polite">{messages.map((message, index) => <p key={index} className={`chat-message chat-${message.sender}`}><strong>{senderLabel(message.sender)}</strong><span className="plain-text">{message.content}</span></p>)}</div>
       {busy && <p role="status">Working…</p>}{error && <p role="alert">{error}</p>}
       {!ready && !busy && <button type="button" onClick={() => void request({ action: "start" })}>Retry opening chat</button>}
       <form onSubmit={send} className="form-stack"><label className="field">Your message<textarea value={content} onChange={(event) => setContent(event.target.value)} required maxLength={2000} disabled={!ready || busy} /></label><button className="button" disabled={!ready || busy || !content.trim()}>Send message</button></form>
