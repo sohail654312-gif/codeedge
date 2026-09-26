@@ -23,7 +23,8 @@ async function expectDatabaseError(
   try {
     await expect(db.query(sql, params)).rejects.toThrow(pattern);
   } finally {
-    await db.exec("ROLLBACK TO SAVEPOINT expected_admin_error; RELEASE SAVEPOINT expected_admin_error");
+    await db.exec("ROLLBACK TO SAVEPOINT expected_admin_error");
+    await db.exec("RELEASE SAVEPOINT expected_admin_error");
   }
 }
 
@@ -54,7 +55,7 @@ describe("operator and membership administration isolation", () => {
   it("requires AAL2 before operator reads or mutations", async () => {
     await authenticate(db, operator, "aal1");
     expect((await db.query("select user_id from public.platform_operators")).rows).toEqual([{ user_id: operator }]);
-    await expect(db.query("select * from public.operator_list_businesses()")).rejects.toThrow(/Operator MFA required/);
+    await expectDatabaseError(db, "select * from public.operator_list_businesses()", undefined, /Operator MFA required/);
     await expectDatabaseError(db, "select public.operator_activate_staff($1,$2)", [f.businessA, newStaff], /Operator MFA required/);
   });
 
@@ -129,26 +130,23 @@ describe("operator and membership administration isolation", () => {
     );
   });
 
-  it("owner staff revocation requires AAL2 and cannot orphan the tenant", async () => {
+  it("owner staff revocation requires AAL2", async () => {
     await authenticate(db, f.ownerA, "aal1");
-    await expectDatabaseError(
-      db,
+    await expect(db.query(
       "select public.revoke_staff_membership($1,$2)",
       [f.businessA, f.staffA],
-      /MFA required/,
-    );
+    )).rejects.toThrow(/MFA required/);
+  });
 
-    await db.exec("RESET ROLE");
+  it("owner at AAL2 can revoke staff but cannot revoke an owner", async () => {
     await authenticate(db, f.ownerA, "aal2");
     await db.query("select public.revoke_staff_membership($1,$2)", [f.businessA, f.staffA]);
     expect((await db.query("select status from public.business_memberships where user_id=$1", [f.staffA])).rows)
       .toEqual([{ status: "revoked" }]);
-    await expectDatabaseError(
-      db,
+    await expect(db.query(
       "select public.revoke_staff_membership($1,$2)",
       [f.businessA, f.ownerA],
-      /Staff membership unavailable/,
-    );
+    )).rejects.toThrow(/Staff membership unavailable/);
   });
 
   it("AAL1 cannot bypass Phase 8B privileged owner operations through direct SQL/Data API semantics", async () => {
