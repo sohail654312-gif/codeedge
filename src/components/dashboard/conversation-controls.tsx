@@ -1,6 +1,6 @@
 "use client";
-import { useActionState, useEffect, useRef, useState } from "react";
-import { resumeAiConversation, sendConversationReply, takeOverConversation } from "@/modules/chat/actions";
+import { useActionState, useRef, useState } from "react";
+import { resumeAiConversation, sendConversationReply, takeOverConversation, type ChatActionState } from "@/modules/chat/actions";
 
 type Assignee = { user_id: string; role: "owner" | "staff" };
 export function ConversationControls({ businessId, conversationId, mode, assignedTo, userId, role, assignees }: {
@@ -8,10 +8,17 @@ export function ConversationControls({ businessId, conversationId, mode, assigne
 }) {
   const [takeState, takeAction, taking] = useActionState(takeOverConversation, {});
   const [resumeState, resumeAction, resuming] = useActionState(resumeAiConversation, {});
-  const [replyState, replyAction, replying] = useActionState(sendConversationReply, {});
   const [requestId, setRequestId] = useState(() => crypto.randomUUID());
   const replyForm = useRef<HTMLFormElement>(null);
-  useEffect(() => { if (replyState.success) { setRequestId(crypto.randomUUID()); replyForm.current?.reset(); } }, [replyState.success]);
+  async function submitReply(state: ChatActionState, form: FormData): Promise<ChatActionState> {
+    const result = await sendConversationReply(state, form);
+    if (result.success) {
+      replyForm.current?.reset();
+      setRequestId(crypto.randomUUID());
+    }
+    return result;
+  }
+  const [replyState, replyAction, replying] = useActionState(submitReply, {});
   const canControl = role === "owner" || assignedTo === userId;
   return <section className="workspace-panel form-stack" aria-label="Conversation controls">
     <h2>Human handoff</h2>
