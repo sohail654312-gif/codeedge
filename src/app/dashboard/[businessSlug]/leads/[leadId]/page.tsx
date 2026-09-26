@@ -6,7 +6,7 @@ import { DeleteChildForm, DeleteLeadForm, LeadForm, NoteForm, QuoteRequestForm }
 
 export default async function LeadPage({ params }: { params: Promise<{ businessSlug: string; leadId: string }> }) {
   const values = await params;
-  const leadId = selectorSchema.safeParse(leadId.data);
+  const leadId = selectorSchema.safeParse(values.leadId);
   if (!leadId.success) notFound();
   const { client, context } = await requireBusinessPage(values.businessSlug);
   const { business, role } = context;
