@@ -5,7 +5,7 @@ vi.mock("@/server/db/client", () => ({ createClient: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 const own = "20000000-0000-4000-8000-000000000001";
 const other = "20000000-0000-4000-8000-000000000002";
-function setup(mode: "owner" | "staff" | "revoked" | "anonymous" | "other" | "hidden-service" = "owner") {
+function setup(mode: "owner" | "owner-aal1" | "staff" | "revoked" | "anonymous" | "other" | "hidden-service" = "owner") {
   const calls: { table: string; operation?: string; values?: unknown; filters: unknown[][] }[] = [];
   const from = vi.fn((table: string) => {
     const call = { table, filters: [] } as typeof calls[number]; calls.push(call);
@@ -17,7 +17,7 @@ function setup(mode: "owner" | "staff" | "revoked" | "anonymous" | "other" | "hi
       single: vi.fn(async () => result()), maybeSingle: vi.fn(async () => result()),
     }; return chain;
   });
-  vi.mocked(createClient).mockResolvedValue({ from, auth: { getUser: async () => ({ data: { user: mode === "anonymous" ? null : { id: "user-a", email_confirmed_at: "2026-09-08" } }, error: null }) } } as unknown as Awaited<ReturnType<typeof createClient>>);
+  vi.mocked(createClient).mockResolvedValue({ from, auth: { getUser: async () => ({ data: { user: mode === "anonymous" ? null : { id: "user-a", email_confirmed_at: "2026-09-08" } }, error: null }), mfa: { getAuthenticatorAssuranceLevel: async () => ({ data: { currentLevel: mode === "owner-aal1" ? "aal1" : "aal2", nextLevel: "aal2", currentAuthenticationMethods: [] }, error: null }), listFactors: async () => ({ data: { all: [], phone: [], totp: [{ id: "81000000-0000-4000-8000-000000000001", status: "verified", factor_type: "totp" }] }, error: null }) } } } as unknown as Awaited<ReturnType<typeof createClient>>);
   return calls;
 }
 function form() {
@@ -38,6 +38,16 @@ describe("catalog server actions use live tenant authorization", () => {
       expect(await action({}, data)).toHaveProperty("error"); expect(calls).toEqual([]);
     });
   }
+  it.each([deleteProfile, deleteService])("requires AAL2 for destructive catalog action", async (action) => {
+    const calls = setup("owner-aal1"); const data = form();
+    expect(await action({}, data)).toMatchObject({ error: "Verify MFA before changing privileged owner settings." });
+    expect(calls.every((call) => ["businesses", "business_memberships"].includes(call.table))).toBe(true);
+  });
+  it.each([saveProfile, saveService])("keeps routine catalog edits available to an owner at AAL1", async (action) => {
+    const calls = setup("owner-aal1"); const data = form();
+    expect(await action({}, data)).toHaveProperty("success");
+    expect(calls.some((call) => call.operation)).toBe(true);
+  });
   it("creates profile with authorized tenant and strips forged identity", async () => {
     const calls = setup(); const data = form(); data.set("business_id", other);
     expect(await saveProfile({}, data)).toHaveProperty("success");
