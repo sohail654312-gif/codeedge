@@ -1,7 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { ZodError } from "zod";
+import { z, ZodError } from "zod";
 import { createClient } from "@/server/db/client";
 import { AccessError, requireOwner, requireTenant, type TenantContext } from "@/server/authorization/tenant";
 import { requirePrivilegedOwner } from "@/server/auth/mfa";
@@ -9,6 +9,14 @@ import { selectorSchema } from "@/modules/catalog/validation";
 import { leadNoteSchema, leadSchema, quoteRequestSchema } from "./validation";
 
 export type LeadState = { error?: string; success?: string };
+
+const updatedAtSchema = z.string().trim().min(1).max(64).refine(
+  (value) => !Number.isNaN(Date.parse(value)),
+  "Refresh the page before editing this record.",
+);
+const staleRecord = (): LeadState => ({
+  error: "This record changed since you opened it. Refresh and try again.",
+});
 
 async function member(form: FormData) {
   const id = selectorSchema.parse(form.get("businessId"));
@@ -56,9 +64,14 @@ export async function saveLead(_state: LeadState, form: FormData): Promise<LeadS
     const values = leadValues(form);
     const rawId = form.get("leadId");
     const result = rawId
-      ? await client.from("leads").update(values).eq("business_id", context.business.id).eq("id", selectorSchema.parse(rawId)).select("id").maybeSingle()
+      ? await client.from("leads").update(values)
+          .eq("business_id", context.business.id)
+          .eq("id", selectorSchema.parse(rawId))
+          .eq("updated_at", updatedAtSchema.parse(form.get("expectedUpdatedAt")))
+          .select("id").maybeSingle()
       : await client.from("leads").insert({ ...values, business_id: context.business.id, created_by: context.userId }).select("id").single();
-    if (result.error || !result.data) throw new Error("Write denied");
+    if (result.error) throw result.error;
+    if (!result.data) return staleRecord();
     paths(context, result.data.id);
     return { success: rawId ? "Lead saved." : "Lead created." };
   } catch (error) { return failure(error); }
@@ -84,9 +97,15 @@ export async function saveLeadNote(_state: LeadState, form: FormData): Promise<L
     const values = leadNoteSchema.parse({ body: form.get("body") });
     const noteId = form.get("noteId");
     const result = noteId
-      ? await client.from("lead_notes").update(values).eq("business_id", context.business.id).eq("lead_id", leadId).eq("id", selectorSchema.parse(noteId)).select("id").maybeSingle()
+      ? await client.from("lead_notes").update(values)
+          .eq("business_id", context.business.id)
+          .eq("lead_id", leadId)
+          .eq("id", selectorSchema.parse(noteId))
+          .eq("updated_at", updatedAtSchema.parse(form.get("expectedUpdatedAt")))
+          .select("id").maybeSingle()
       : await client.from("lead_notes").insert({ ...values, business_id: context.business.id, lead_id: leadId, created_by: context.userId }).select("id").single();
-    if (result.error || !result.data) throw new Error("Write denied");
+    if (result.error) throw result.error;
+    if (!result.data) return staleRecord();
     paths(context, leadId);
     return { success: noteId ? "Note saved." : "Note added." };
   } catch (error) { return failure(error); }
@@ -111,9 +130,15 @@ export async function saveQuoteRequest(_state: LeadState, form: FormData): Promi
     const values = quoteRequestSchema.parse({ details: form.get("details"), status: form.get("status") });
     const quoteId = form.get("quoteRequestId");
     const result = quoteId
-      ? await client.from("quote_requests").update(values).eq("business_id", context.business.id).eq("lead_id", leadId).eq("id", selectorSchema.parse(quoteId)).select("id").maybeSingle()
+      ? await client.from("quote_requests").update(values)
+          .eq("business_id", context.business.id)
+          .eq("lead_id", leadId)
+          .eq("id", selectorSchema.parse(quoteId))
+          .eq("updated_at", updatedAtSchema.parse(form.get("expectedUpdatedAt")))
+          .select("id").maybeSingle()
       : await client.from("quote_requests").insert({ ...values, business_id: context.business.id, lead_id: leadId, created_by: context.userId }).select("id").single();
-    if (result.error || !result.data) throw new Error("Write denied");
+    if (result.error) throw result.error;
+    if (!result.data) return staleRecord();
     paths(context, leadId);
     return { success: quoteId ? "Quote request saved." : "Quote request added." };
   } catch (error) { return failure(error); }
