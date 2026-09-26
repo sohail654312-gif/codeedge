@@ -92,6 +92,9 @@ jobs:
         run: node scripts/ci/check-security-report.mjs
       - id: seed
         run: npm run dev:seed
+      - name: Disposable application-data backup/restore rehearsal
+        id: restore_rehearsal
+        run: node scripts/ci/backup-restore-rehearsal.mjs
       - id: build
         run: npm run build
       - id: browser_install
