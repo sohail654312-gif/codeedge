@@ -19,7 +19,7 @@ export async function loadBrainContext(db: QueryClient, conversationId: string):
   const add = (kind: Fact["kind"], label: string, content: string) => {
     const clean = content.trim();
     // Omit oversized facts rather than silently changing their meaning by clipping.
-    if (!clean || clean.length > 3500 || clean.length + label.length > remaining) return;
+    if (!clean || clean.length > 4000 || clean.length + label.length > remaining) return;
     remaining -= clean.length + label.length;
     facts.push({ key: `fact_${facts.length}`, kind, label: label.slice(0, 300), text: clean });
   };

@@ -5,7 +5,7 @@ export default async function ConversationsPage({ params }: { params: Promise<{ 
   const { client, context } = await requireBusinessPage((await params).businessSlug);
   const { business } = context;
   const [chats, widget, whatsapp] = await Promise.all([
-    client.from("conversations").select("id,channel,created_at,lead_id,handling_mode,assigned_to").eq("business_id", business.id).order("created_at", { ascending: false }).limit(100),
+    client.from("conversations").select("id,channel,created_at,updated_at,lead_id,handling_mode,assigned_to").eq("business_id", business.id).order("updated_at", { ascending: false }).limit(100),
     client.from("chat_widgets").select("id,enabled").eq("business_id", business.id).maybeSingle(),
     client.from("whatsapp_channels").select("id,display_phone_number,enabled").eq("business_id", business.id).order("created_at"),
   ]);
@@ -18,8 +18,8 @@ export default async function ConversationsPage({ params }: { params: Promise<{ 
       {whatsapp.data.map((channel) => <p key={channel.id}>{channel.display_phone_number || "Connected WhatsApp number"} · {channel.enabled ? "Enabled" : "Disabled"}</p>)}
       <p className="muted">Channel mappings are provisioned only after provider-side verification; access tokens are never stored here.</p>
     </section>
-    <section className="workspace-panel catalog-panel"><h2>Recent conversations</h2><p className="muted">Latest 100 conversations across connected channels.</p>{!chats.data.length && <p>No conversations yet.</p>}
-      {chats.data.map((chat) => <article className="service-card" key={chat.id}><Link href={`/dashboard/${business.slug}/conversations/${chat.id}`}>{channelLabel(chat.channel)} conversation · {new Date(chat.created_at).toLocaleString("en-GB", { timeZone: business.timezone })}</Link><p>{chat.lead_id ? "Enquiry captured" : "Chat only"} · {chat.handling_mode === "human" ? `Human handling${chat.assigned_to === context.userId ? " · assigned to you" : ""}` : "AI handling"}</p></article>)}
+    <section className="workspace-panel catalog-panel"><h2>Recent conversations</h2><p className="muted">Latest 100 conversations across connected channels, ordered by recent activity.</p>{!chats.data.length && <p>No conversations yet.</p>}
+      {chats.data.map((chat) => <article className="service-card" key={chat.id}><Link href={`/dashboard/${business.slug}/conversations/${chat.id}`}>{channelLabel(chat.channel)} conversation · {new Date(chat.updated_at).toLocaleString("en-GB", { timeZone: business.timezone })}</Link><p>{chat.lead_id ? "Enquiry captured" : "Chat only"} · {chat.handling_mode === "human" ? `Human handling${chat.assigned_to === context.userId ? " · assigned to you" : ""}` : "AI handling"}</p></article>)}
     </section>
   </main>;
 }

@@ -1,5 +1,24 @@
 # Codeedge progress and completion sequence
 
+## Current final-completion state — 26 September 2026
+
+Main entered Attempt 1 at `779181e08d8f0cf359b9ffa0b0899fa025984f82`
+after Phase 8B MFA enforcement and successful post-merge Foundation checks #77.
+The original MVP was estimated at approximately 90–91% at that gate.
+
+Final-completion Attempt 1 is the administration/pilot-foundation workstream. Its
+candidate scope adds a separate platform-operator authorization boundary, operator
+and owner AAL2-protected membership administration, administrative audit evidence,
+expanded Website Chat cost/abuse controls, canonical chat-to-service CRM linkage,
+dependency-aware readiness, FAQ/AI delivery consistency, precise malformed-lead
+handling, and recent-activity conversation ordering.
+
+This section is a live completion record, not permission to count unmerged work.
+Only the final Attempt 1 revision that passes complete Foundation checks, is merged,
+and passes post-merge main CI counts toward the completion percentage. Attempt 2
+remains reserved for final production/pilot closure. See
+`docs/pilot-readiness-attempt-1.md`.
+
 ## Verified completion state — 19 September 2026
 
 - Phase 1 — COMPLETE.

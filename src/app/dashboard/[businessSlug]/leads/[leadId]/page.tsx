@@ -1,17 +1,20 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireBusinessPage } from "@/server/auth/session";
+import { selectorSchema } from "@/modules/catalog/validation";
 import { DeleteChildForm, DeleteLeadForm, LeadForm, NoteForm, QuoteRequestForm } from "@/components/dashboard/lead-forms";
 
 export default async function LeadPage({ params }: { params: Promise<{ businessSlug: string; leadId: string }> }) {
   const values = await params;
+  const leadId = selectorSchema.safeParse(values.leadId);
+  if (!leadId.success) notFound();
   const { client, context } = await requireBusinessPage(values.businessSlug);
   const { business, role } = context;
   const [leadResult, servicesResult, notesResult, quotesResult] = await Promise.all([
-    client.from("leads").select("*").eq("business_id", business.id).eq("id", values.leadId).maybeSingle(),
+    client.from("leads").select("*").eq("business_id", business.id).eq("id", leadId.data).maybeSingle(),
     client.from("services").select("*").eq("business_id", business.id).order("display_order").order("id"),
-    client.from("lead_notes").select("*").eq("business_id", business.id).eq("lead_id", values.leadId).order("created_at").order("id"),
-    client.from("quote_requests").select("*").eq("business_id", business.id).eq("lead_id", values.leadId).order("created_at").order("id"),
+    client.from("lead_notes").select("*").eq("business_id", business.id).eq("lead_id", leadId.data).order("created_at").order("id"),
+    client.from("quote_requests").select("*").eq("business_id", business.id).eq("lead_id", leadId.data).order("created_at").order("id"),
   ]);
   if (leadResult.error || servicesResult.error || notesResult.error || quotesResult.error) throw new Error("Unable to load lead details.");
   if (!leadResult.data) notFound();

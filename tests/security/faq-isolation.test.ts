@@ -88,7 +88,7 @@ describe("business FAQ database security", () => {
   });
   it.each([
     "question=''", "question=E' \\t\\n '", "question=repeat('q',301)", "question=null",
-    "answer=''", "answer=E' \\t\\n '", "answer=repeat('a',5001)", "answer=null",
+    "answer=''", "answer=E' \\t\\n '", "answer=repeat('a',4001)", "answer=null",
     "display_order=-1", "display_order=10001", "display_order=null", "is_active=null",
   ])("database rejects invalid FAQ %s", async (values) => {
     await asUser(db, f.ownerA);
@@ -106,7 +106,7 @@ describe("business FAQ database security", () => {
   });
   it("accepts maximum lengths/order and owner reactivation", async () => {
     await asUser(db, f.ownerA);
-    await db.exec("update public.business_faqs set question=repeat('q',300),answer=repeat('a',5000),display_order=10000,is_active=false");
+    await db.exec("update public.business_faqs set question=repeat('q',300),answer=repeat('a',4000),display_order=10000,is_active=false");
     expect((await db.query("update public.business_faqs set is_active=true returning is_active")).rows).toEqual([{ is_active: true }]);
   });
   it("updates the timestamp through the existing trigger", async () => {

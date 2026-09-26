@@ -34,6 +34,8 @@ export type WhatsAppOutboxStatus = "pending" | "sent" | "failed";
 export type Database = {
   public: {
     Tables: {
+      platform_operators: Table<{ user_id: string; status: "active" | "revoked"; created_at: string; updated_at: string }, never, never>;
+      admin_audit_events: Table<{ id: string; business_id: string | null; actor_user_id: string | null; actor_scope: "owner" | "operator" | "system"; action: string; target_type: string; target_id: string | null; result: "success" | "denied" | "failed"; metadata: Record<string, unknown>; created_at: string }, never, never>;
       chat_widgets: Table<{ id: string; business_id: string; enabled: boolean }, { business_id: string; enabled: boolean }, { enabled?: boolean }>;
       conversations: Table<{ id: string; business_id: string; widget_id: string | null; channel: ConversationChannel; lead_id: string | null; handling_mode: ConversationHandling; assigned_to: string | null; taken_over_by: string | null; taken_over_at: string | null; created_at: string; updated_at: string; expires_at: string | null }, never, never>;
       messages: Table<{ id: string; business_id: string; conversation_id: string; sender: "visitor" | "assistant" | "member"; content: string; request_id: string; created_by: string | null; created_at: string }, never, never>;
@@ -56,6 +58,13 @@ export type Database = {
     };
     Views: { [_ in never]: never };
     Functions: {
+      list_business_memberships: { Args: { target_business: string }; Returns: { user_id: string; email: string | null; display_name: string | null; role: Role; status: MembershipStatus; created_at: string }[] };
+      revoke_staff_membership: { Args: { target_business: string; target_user: string }; Returns: undefined };
+      operator_list_businesses: { Args: Record<PropertyKey, never>; Returns: { id: string; name: string; slug: string; status: BusinessStatus; active_members: number }[] };
+      operator_list_memberships: { Args: { target_business: string }; Returns: { user_id: string; email: string | null; role: Role; status: MembershipStatus; created_at: string }[] };
+      operator_provision_business: { Args: { target_name: string; target_slug: string; target_user: string }; Returns: string };
+      operator_activate_staff: { Args: { target_business: string; target_user: string }; Returns: undefined };
+      operator_revoke_staff: { Args: { target_business: string; target_user: string }; Returns: undefined };
       handoff_take_over: { Args: { target_conversation: string; target_assignee?: string | null }; Returns: undefined };
       handoff_resume_ai: { Args: { target_conversation: string }; Returns: undefined };
       handoff_reply: { Args: { target_conversation: string; body: string; target_request: string }; Returns: { outboxId: string | null; phoneNumberId: string | null } };
