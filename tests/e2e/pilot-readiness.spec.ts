@@ -26,7 +26,7 @@ test.describe("pilot readiness journeys", () => {
     await page.getByRole("link", { name: /Northfield Plumbing/ }).click();
     await page.getByRole("link", { name: /Team access/ }).click();
     await expect(page.getByRole("heading", { name: "Team access" })).toBeVisible();
-    await expect(page.getByText("staff@codeedge.test", { exact: false })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "staff@codeedge.test" })).toBeVisible();
 
     page.once("dialog", (dialog) => dialog.accept());
     await page.getByRole("button", { name: "Revoke staff access" }).click();
