@@ -371,11 +371,11 @@ grant execute on function public.operator_list_businesses(),
 to authenticated;
 
 create function public.revoke_staff_membership(target_business uuid,target_user uuid)
-returns void language plpgsql security definer set search_path='' as $$
+returns void language plpgsql security definer set search_path='' as $
 declare
   actor uuid := auth.uid();
-  current_role public.business_role;
-  current_status public.membership_status;
+  membership_role public.business_role;
+  membership_status public.membership_status;
 begin
   if actor is null then raise exception 'Authentication required'; end if;
   if not private.has_business_role(target_business,array['owner']::public.business_role[]) then
@@ -383,15 +383,15 @@ begin
   end if;
   if not private.current_aal2() then raise exception 'MFA required'; end if;
 
-  select role,status into current_role,current_status
-  from public.business_memberships
-  where business_id=target_business and user_id=target_user
+  select m.role,m.status into membership_role,membership_status
+  from public.business_memberships m
+  where m.business_id=target_business and m.user_id=target_user
   for update;
 
-  if current_role is null or current_role <> 'staff' then
+  if membership_role is null or membership_role <> 'staff' then
     raise exception 'Staff membership unavailable';
   end if;
-  if current_status='revoked' then return; end if;
+  if membership_status='revoked' then return; end if;
 
   update public.business_memberships
   set status='revoked'
