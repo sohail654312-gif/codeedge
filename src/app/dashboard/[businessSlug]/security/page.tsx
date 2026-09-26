@@ -46,8 +46,8 @@ export default async function SecurityPage({
     <MfaPanel
       businessId={context.business.id}
       mode={mode}
-      factorId={verifiedTotp[0]?.id}
-      notice={notice}
+      {...(verifiedTotp[0]?.id ? { factorId: verifiedTotp[0].id } : {})}
+      {...(notice ? { notice } : {})}
     />
   </main>;
 }

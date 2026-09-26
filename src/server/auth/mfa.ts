@@ -7,8 +7,8 @@ type TenantSelector = { id: string } | { slug: string };
 
 export type OwnerMfaState = {
   context: TenantContext;
-  currentLevel: "aal1" | "aal2" | null;
-  nextLevel: "aal1" | "aal2" | null;
+  currentLevel: string | null;
+  nextLevel: string | null;
   verifiedTotpFactorIds: string[];
 };
 
