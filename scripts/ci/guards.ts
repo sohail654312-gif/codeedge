@@ -86,5 +86,6 @@ export function assertNativeSecurityReport(value: unknown) {
     "tests/security/chat-isolation.test.ts": 1,
     "tests/security/ai-isolation.test.ts": 1,
     "tests/security/handoff-isolation.test.ts": 1,
+    "tests/security/whatsapp-isolation.test.ts": 1,
   });
 }
