@@ -42,7 +42,7 @@ test.describe("pilot readiness journeys", () => {
   test("ordinary customer owners are not platform operators", async ({ page }) => {
     await signIn(page, "alice@codeedge.test");
     await page.goto("/operator");
-    await expect(page.getByRole("heading", { name: "Page not found" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Workspace unavailable" })).toBeVisible();
   });
 
   test("password recovery keeps account existence private and uses the approved redirect flow", async ({ page }) => {
