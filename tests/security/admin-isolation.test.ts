@@ -117,6 +117,34 @@ describe("operator and membership administration isolation", () => {
       .rejects.toThrow(/Staff membership unavailable/);
   });
 
+  it("AAL1 cannot bypass Phase 8B privileged owner operations through direct SQL/Data API semantics", async () => {
+    await db.exec("RESET ROLE");
+    await db.query("insert into public.business_profiles(business_id,trading_name) values($1,'A')", [f.businessA]);
+    const service = String((await db.query("insert into public.services(business_id,name,description) values($1,'Delete me','x') returning id", [f.businessA])).rows[0]!.id);
+    const area = String((await db.query("insert into public.service_areas(business_id,name) values($1,'Area') returning id", [f.businessA])).rows[0]!.id);
+    const faq = String((await db.query("insert into public.business_faqs(business_id,question,answer) values($1,'Q?','A') returning id", [f.businessA])).rows[0]!.id);
+    await db.query("insert into public.business_settings(business_id,locale) values($1,'en-GB')", [f.businessA]);
+    const lead = String((await db.query("insert into public.leads(business_id,contact_name,phone,enquiry_summary) values($1,'Lead','123','x') returning id", [f.businessA])).rows[0]!.id);
+
+    await authenticate(db, f.ownerA, "aal1");
+    expect((await db.query("update public.businesses set name='Bypass' where id=$1 returning id", [f.businessA])).rows).toEqual([]);
+    expect((await db.query("delete from public.business_profiles where business_id=$1 returning business_id", [f.businessA])).rows).toEqual([]);
+    expect((await db.query("delete from public.services where id=$1 returning id", [service])).rows).toEqual([]);
+    expect((await db.query("delete from public.service_areas where id=$1 returning id", [area])).rows).toEqual([]);
+    expect((await db.query("delete from public.business_faqs where id=$1 returning id", [faq])).rows).toEqual([]);
+    expect((await db.query("update public.business_settings set locale='fr-FR' where business_id=$1 returning business_id", [f.businessA])).rows).toEqual([]);
+    expect((await db.query("delete from public.leads where id=$1 returning id", [lead])).rows).toEqual([]);
+  });
+
+  it("AAL2 privileged owner mutations append tenant-scoped audit evidence", async () => {
+    await db.exec("RESET ROLE");
+    const service = String((await db.query("insert into public.services(business_id,name,description) values($1,'Audited service','x') returning id", [f.businessA])).rows[0]!.id);
+    await authenticate(db, f.ownerA, "aal2");
+    expect((await db.query("delete from public.services where id=$1 returning id", [service])).rows).toEqual([{ id: service }]);
+    const events = (await db.query("select actor_user_id,action,target_id,result from public.admin_audit_events where target_id=$1", [service])).rows;
+    expect(events).toEqual([{ actor_user_id: f.ownerA, action: "service.delete", target_id: service, result: "success" }]);
+  });
+
   it("owner membership listing is tenant scoped", async () => {
     await authenticate(db, f.ownerA, "aal2");
     const rows = (await db.query("select email from public.list_business_memberships($1)", [f.businessA])).rows;
