@@ -2,6 +2,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/server/db/client";
 import { AccessError, requireOwner, requireTenant } from "@/server/authorization/tenant";
+import { requirePrivilegedOwner } from "@/server/auth/mfa";
 import { profileSchema, serviceSchema, selectorSchema } from "./validation";
 export type CatalogState = { error?: string; success?: string };
 async function owner(form: FormData) {
@@ -9,6 +10,12 @@ async function owner(form: FormData) {
   const client = await createClient();
   const context = await requireTenant(client, { id });
   requireOwner(context);
+  return { client, context };
+}
+async function privilegedOwner(form: FormData) {
+  const id = selectorSchema.parse(form.get("businessId"));
+  const client = await createClient();
+  const context = await requirePrivilegedOwner(client, { id });
   return { client, context };
 }
 function failure(error: unknown): CatalogState {
@@ -30,7 +37,7 @@ export async function saveProfile(_state: CatalogState, form: FormData): Promise
 }
 export async function deleteProfile(_state: CatalogState, form: FormData): Promise<CatalogState> {
   try {
-    const { client, context } = await owner(form);
+    const { client, context } = await privilegedOwner(form);
     const result = await client.from("business_profiles").delete().eq("business_id", context.business.id).select("business_id").maybeSingle();
     if (result.error || !result.data) throw new Error("Delete denied");
     revalidatePath(`/dashboard/${context.business.slug}`);
@@ -52,7 +59,7 @@ export async function saveService(_state: CatalogState, form: FormData): Promise
 }
 export async function deleteService(_state: CatalogState, form: FormData): Promise<CatalogState> {
   try {
-    const { client, context } = await owner(form);
+    const { client, context } = await privilegedOwner(form);
     const id = selectorSchema.parse(form.get("serviceId"));
     const result = await client.from("services").delete().eq("business_id", context.business.id).eq("id", id).select("id").maybeSingle();
     if (result.error || !result.data) throw new Error("Delete denied");

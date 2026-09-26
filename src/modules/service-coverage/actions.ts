@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { ZodError } from "zod";
 import { createClient } from "@/server/db/client";
 import { AccessError, requireOwner, requireTenant } from "@/server/authorization/tenant";
+import { requirePrivilegedOwner } from "@/server/auth/mfa";
 import { selectorSchema } from "@/modules/catalog/validation";
 import { areaSchema, hoursSchema, weekdaySchema } from "./validation";
 
@@ -12,6 +13,12 @@ async function owner(form: FormData) {
   const client = await createClient();
   const context = await requireTenant(client, { id });
   requireOwner(context);
+  return { client, context };
+}
+async function privilegedOwner(form: FormData) {
+  const id = selectorSchema.parse(form.get("businessId"));
+  const client = await createClient();
+  const context = await requirePrivilegedOwner(client, { id });
   return { client, context };
 }
 function failure(error: unknown): CoverageState {
@@ -34,7 +41,7 @@ export async function saveArea(_state: CoverageState, form: FormData): Promise<C
 }
 export async function deleteArea(_state: CoverageState, form: FormData): Promise<CoverageState> {
   try {
-    const { client, context } = await owner(form);
+    const { client, context } = await privilegedOwner(form);
     const id = selectorSchema.parse(form.get("areaId"));
     const result = await client.from("service_areas").delete().eq("business_id", context.business.id).eq("id", id).select("id").maybeSingle();
     if (result.error || !result.data) throw new Error("Delete denied");

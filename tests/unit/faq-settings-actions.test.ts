@@ -61,6 +61,18 @@ describe("FAQ and settings actions use live tenant authorization", () => {
     });
   }
 
+  it("deleteFaq rejects an owner at AAL1 before accessing FAQ data", async () => {
+    const calls = setup("owner-aal1"); const form = faqForm();
+    expect(await deleteFaq({}, form)).toMatchObject({ error: "Verify MFA before changing privileged owner settings." });
+    expect(calls.every((call) => ["businesses", "business_memberships"].includes(call.table))).toBe(true);
+  });
+
+  it("saveFaq remains available to an owner at AAL1", async () => {
+    const calls = setup("owner-aal1"); const form = faqForm();
+    expect(await saveFaq({}, form)).toHaveProperty("success");
+    expect(calls.some((call) => call.operation)).toBe(true);
+  });
+
   it("saveSettings rejects an owner at AAL1 before accessing business settings", async () => {
     const calls = setup("owner-aal1"); const form = settingsForm();
     expect(await saveSettings({}, form)).toMatchObject({ error: "Verify MFA before changing privileged owner settings." });

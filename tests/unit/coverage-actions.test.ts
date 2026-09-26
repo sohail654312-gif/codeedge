@@ -5,7 +5,7 @@ vi.mock("@/server/db/client", () => ({ createClient: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 const own = "20000000-0000-4000-8000-000000000001";
 const other = "20000000-0000-4000-8000-000000000002";
-type Mode = "owner" | "staff" | "revoked" | "anonymous" | "other" | "hidden" | "existing" | "read-error" | "write-error";
+type Mode = "owner" | "owner-aal1" | "staff" | "revoked" | "anonymous" | "other" | "hidden" | "existing" | "read-error" | "write-error";
 function setup(mode: Mode = "owner") {
   const calls: { table: string; operation?: string; values?: unknown; filters: unknown[][] }[] = [];
   const from = vi.fn((table: string) => {
@@ -23,7 +23,7 @@ function setup(mode: Mode = "owner") {
       single: vi.fn(async () => result()), maybeSingle: vi.fn(async () => result()),
     }; return chain;
   });
-  vi.mocked(createClient).mockResolvedValue({ from, auth: { getUser: async () => ({ data: { user: mode === "anonymous" ? null : { id: "user-a", email_confirmed_at: "2026-09-08" } }, error: null }) } } as unknown as Awaited<ReturnType<typeof createClient>>);
+  vi.mocked(createClient).mockResolvedValue({ from, auth: { getUser: async () => ({ data: { user: mode === "anonymous" ? null : { id: "user-a", email_confirmed_at: "2026-09-08" } }, error: null }), mfa: { getAuthenticatorAssuranceLevel: async () => ({ data: { currentLevel: mode === "owner-aal1" ? "aal1" : "aal2", nextLevel: "aal2", currentAuthenticationMethods: [] }, error: null }), listFactors: async () => ({ data: { all: [], phone: [], totp: [{ id: "81000000-0000-4000-8000-000000000001", status: "verified", factor_type: "totp" }] }, error: null }) } } } as unknown as Awaited<ReturnType<typeof createClient>>);
   return calls;
 }
 function form() {
@@ -48,6 +48,16 @@ describe("coverage server actions use verified membership", () => {
       expect(result.error).toBeTruthy(); expect(result.error).not.toContain("Private database error");
     });
   }
+  it("requires AAL2 before deleting a service area", async () => {
+    const calls = setup("owner-aal1");
+    expect(await deleteArea({}, form())).toMatchObject({ error: "Verify MFA before changing privileged owner settings." });
+    expect(calls.every((call) => ["businesses", "business_memberships"].includes(call.table))).toBe(true);
+  });
+  it.each([saveArea, saveHours])("keeps routine coverage edits available to an owner at AAL1", async (action) => {
+    const calls = setup("owner-aal1");
+    expect(await action({}, form())).toHaveProperty("success");
+    expect(calls.some((call) => call.operation)).toBe(true);
+  });
   it("creates area with verified tenant and normalized values", async () => {
     const calls = setup(); const data = form(); data.delete("areaId"); data.set("business_id", other);
     expect(await saveArea({}, data)).toHaveProperty("success");
