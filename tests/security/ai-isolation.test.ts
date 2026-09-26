@@ -104,6 +104,15 @@ describe("AI knowledge database and orchestration security", () => {
     await processChat(db, contact); await processChat(db, contact); await db.exec("RESET ROLE");
     expect((await db.query("select business_id,source from public.leads")).rows).toEqual([{ business_id: f.businessA, source: "website" }]);
   });
+  it("loads the full supported 4,000-character FAQ instead of silently omitting it", async () => {
+    await db.query("update public.business_faqs set answer=repeat('F',4000) where business_id=$1 and is_active", [f.businessA]);
+    await setChatContext(db, widgetA, tokenA);
+    const context = await loadBrainContext(db, chatA);
+    expect(context.knowledge.facts.find((fact) => fact.kind === "faq")?.text).toHaveLength(4000);
+  });
+  it("database rejects FAQ content that cannot fit the approved chat delivery boundary", async () => {
+    await expect(db.query("update public.business_faqs set answer=repeat('F',4001) where business_id=$1 and is_active", [f.businessA])).rejects.toThrow();
+  });
   it("context reads source-of-truth changes without a duplicate knowledge store", async () => {
     await db.query("update public.business_faqs set answer='Updated confirmed answer' where business_id=$1 and is_active", [f.businessA]);
     await setChatContext(db, widgetA, tokenA);
