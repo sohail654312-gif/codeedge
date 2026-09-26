@@ -91,6 +91,162 @@ language sql stable set search_path='' as $$
 $$;
 revoke all on function private.current_aal2() from public,anon,authenticated;
 
+create function public.operator_list_businesses()
+returns table(
+  id uuid,
+  name text,
+  slug text,
+  status public.business_status,
+  active_members bigint
+)
+language plpgsql stable security definer set search_path='' as $
+begin
+  if not private.is_platform_operator() or not private.current_aal2() then
+    raise exception 'Operator MFA required';
+  end if;
+  return query
+    select b.id,b.name,b.slug,b.status,
+      count(m.user_id) filter (where m.status='active') as active_members
+    from public.businesses b
+    left join public.business_memberships m on m.business_id=b.id
+    group by b.id,b.name,b.slug,b.status
+    order by b.created_at desc,b.id
+    limit 100;
+end
+$;
+
+create function public.operator_list_memberships(target_business uuid)
+returns table(
+  user_id uuid,
+  email text,
+  role public.business_role,
+  status public.membership_status,
+  created_at timestamptz
+)
+language plpgsql stable security definer set search_path='' as $
+begin
+  if not private.is_platform_operator() or not private.current_aal2() then
+    raise exception 'Operator MFA required';
+  end if;
+  return query
+    select m.user_id,u.email,m.role,m.status,m.created_at
+    from public.business_memberships m
+    join auth.users u on u.id=m.user_id
+    where m.business_id=target_business
+    order by case when m.role='owner' then 0 else 1 end,u.email,m.user_id;
+end
+$;
+
+create function public.operator_provision_business(
+  target_name text,
+  target_slug text,
+  target_user uuid
+) returns uuid
+language plpgsql security definer set search_path='' as $
+declare
+  actor uuid:=auth.uid();
+  created_business uuid;
+begin
+  if actor is null or not private.is_platform_operator() or not private.current_aal2() then
+    raise exception 'Operator MFA required';
+  end if;
+  if target_user is null or target_user=actor then raise exception 'Invalid owner target'; end if;
+
+  insert into public.businesses(name,slug)
+  values(btrim(target_name),lower(btrim(target_slug)))
+  returning id into created_business;
+
+  insert into public.business_memberships(business_id,user_id,role,status)
+  values(created_business,target_user,'owner','active');
+
+  insert into public.admin_audit_events(
+    business_id,actor_user_id,actor_scope,action,target_type,target_id,result
+  ) values(
+    created_business,actor,'operator','business.provision','business',created_business,'success'
+  );
+  return created_business;
+end
+$;
+
+create function public.operator_activate_staff(
+  target_business uuid,
+  target_user uuid
+) returns void
+language plpgsql security definer set search_path='' as $
+declare
+  actor uuid:=auth.uid();
+  existing_role public.business_role;
+begin
+  if actor is null or not private.is_platform_operator() or not private.current_aal2() then
+    raise exception 'Operator MFA required';
+  end if;
+  if target_user is null or target_user=actor then raise exception 'Invalid staff target'; end if;
+  if not exists(select 1 from public.businesses b where b.id=target_business and b.status='active') then
+    raise exception 'Business unavailable';
+  end if;
+
+  select m.role into existing_role
+  from public.business_memberships m
+  where m.business_id=target_business and m.user_id=target_user
+  for update;
+  if existing_role='owner' then raise exception 'Owner membership cannot be changed'; end if;
+
+  insert into public.business_memberships(business_id,user_id,role,status)
+  values(target_business,target_user,'staff','active')
+  on conflict(business_id,user_id)
+  do update set role='staff',status='active';
+
+  insert into public.admin_audit_events(
+    business_id,actor_user_id,actor_scope,action,target_type,target_id,result
+  ) values(
+    target_business,actor,'operator','membership.staff.activate','business_membership',target_user,'success'
+  );
+end
+$;
+
+create function public.operator_revoke_staff(
+  target_business uuid,
+  target_user uuid
+) returns void
+language plpgsql security definer set search_path='' as $
+declare
+  actor uuid:=auth.uid();
+  existing_role public.business_role;
+begin
+  if actor is null or not private.is_platform_operator() or not private.current_aal2() then
+    raise exception 'Operator MFA required';
+  end if;
+  select m.role into existing_role
+  from public.business_memberships m
+  where m.business_id=target_business and m.user_id=target_user and m.status='active'
+  for update;
+  if existing_role is null or existing_role<>'staff' then raise exception 'Active staff membership unavailable'; end if;
+
+  update public.business_memberships
+  set status='revoked'
+  where business_id=target_business and user_id=target_user and role='staff';
+
+  insert into public.admin_audit_events(
+    business_id,actor_user_id,actor_scope,action,target_type,target_id,result
+  ) values(
+    target_business,actor,'operator','membership.staff.revoke','business_membership',target_user,'success'
+  );
+end
+$;
+
+revoke all on function public.operator_list_businesses(),
+  public.operator_list_memberships(uuid),
+  public.operator_provision_business(text,text,uuid),
+  public.operator_activate_staff(uuid,uuid),
+  public.operator_revoke_staff(uuid,uuid)
+from public,anon;
+grant execute on function public.operator_list_businesses(),
+  public.operator_list_memberships(uuid),
+  public.operator_provision_business(text,text,uuid),
+  public.operator_activate_staff(uuid,uuid),
+  public.operator_revoke_staff(uuid,uuid)
+to authenticated;
+
 create function public.revoke_staff_membership(target_business uuid,target_user uuid)
 returns void language plpgsql security definer set search_path='' as $$
 declare
