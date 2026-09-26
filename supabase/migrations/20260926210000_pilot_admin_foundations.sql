@@ -63,7 +63,7 @@ returns table(
   status public.membership_status,
   created_at timestamptz
 )
-language plpgsql stable security definer set search_path='' as $
+language plpgsql stable security definer set search_path='' as $$
 begin
   if auth.uid() is null
     or not private.has_business_role(target_business,array['owner']::public.business_role[])
@@ -78,7 +78,7 @@ begin
     where m.business_id=target_business
     order by case when m.role='owner' then 0 else 1 end,u.email,m.user_id;
 end
-$;
+$$;
 revoke all on function public.list_business_memberships(uuid) from public,anon;
 grant execute on function public.list_business_memberships(uuid) to authenticated;
 
@@ -159,7 +159,7 @@ create policy leads_delete on public.leads for delete to authenticated
   );
 
 create function private.audit_privileged_owner_mutation() returns trigger
-language plpgsql security definer set search_path='' as $
+language plpgsql security definer set search_path='' as $$
 declare
   payload jsonb;
   tenant uuid;
@@ -196,7 +196,7 @@ begin
 
   if tg_op='DELETE' then return old; else return new; end if;
 end
-$;
+$$;
 revoke all on function private.audit_privileged_owner_mutation() from public,anon,authenticated;
 
 create trigger audit_business_rename after update on public.businesses
@@ -222,7 +222,7 @@ returns table(
   status public.business_status,
   active_members bigint
 )
-language plpgsql stable security definer set search_path='' as $
+language plpgsql stable security definer set search_path='' as $$
 begin
   if not private.is_platform_operator() or not private.current_aal2() then
     raise exception 'Operator MFA required';
@@ -236,7 +236,7 @@ begin
     order by b.created_at desc,b.id
     limit 100;
 end
-$;
+$$;
 
 create function public.operator_list_memberships(target_business uuid)
 returns table(
@@ -246,7 +246,7 @@ returns table(
   status public.membership_status,
   created_at timestamptz
 )
-language plpgsql stable security definer set search_path='' as $
+language plpgsql stable security definer set search_path='' as $$
 begin
   if not private.is_platform_operator() or not private.current_aal2() then
     raise exception 'Operator MFA required';
@@ -258,14 +258,14 @@ begin
     where m.business_id=target_business
     order by case when m.role='owner' then 0 else 1 end,u.email,m.user_id;
 end
-$;
+$$;
 
 create function public.operator_provision_business(
   target_name text,
   target_slug text,
   target_user uuid
 ) returns uuid
-language plpgsql security definer set search_path='' as $
+language plpgsql security definer set search_path='' as $$
 declare
   actor uuid:=auth.uid();
   created_business uuid;
@@ -289,13 +289,13 @@ begin
   );
   return created_business;
 end
-$;
+$$;
 
 create function public.operator_activate_staff(
   target_business uuid,
   target_user uuid
 ) returns void
-language plpgsql security definer set search_path='' as $
+language plpgsql security definer set search_path='' as $$
 declare
   actor uuid:=auth.uid();
   existing_role public.business_role;
@@ -325,13 +325,13 @@ begin
     target_business,actor,'operator','membership.staff.activate','business_membership',target_user,'success'
   );
 end
-$;
+$$;
 
 create function public.operator_revoke_staff(
   target_business uuid,
   target_user uuid
 ) returns void
-language plpgsql security definer set search_path='' as $
+language plpgsql security definer set search_path='' as $$
 declare
   actor uuid:=auth.uid();
   existing_role public.business_role;
@@ -355,7 +355,7 @@ begin
     target_business,actor,'operator','membership.staff.revoke','business_membership',target_user,'success'
   );
 end
-$;
+$$;
 
 revoke all on function public.operator_list_businesses(),
   public.operator_list_memberships(uuid),
