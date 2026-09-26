@@ -4,6 +4,10 @@ import type { Database } from "@/types/database";
 import { AccessError, verifiedUser } from "./tenant";
 
 export type OperatorContext = { userId: string };
+export type OperatorMfaState = OperatorContext & {
+  currentLevel: string | null;
+  verifiedTotpFactorIds: string[];
+};
 
 export async function requireOperator(
   client: SupabaseClient<Database>,
@@ -20,9 +24,9 @@ export async function requireOperator(
   return { userId: user.id };
 }
 
-export async function requirePrivilegedOperator(
+export async function getOperatorMfaState(
   client: SupabaseClient<Database>,
-): Promise<OperatorContext> {
+): Promise<OperatorMfaState> {
   const context = await requireOperator(client);
   const [aal, factors] = await Promise.all([
     client.auth.mfa.getAuthenticatorAssuranceLevel(),
@@ -31,11 +35,21 @@ export async function requirePrivilegedOperator(
   if (aal.error || factors.error) {
     throw new AccessError(403, "Operator MFA status could not be verified.");
   }
-  const hasVerifiedTotp = (factors.data?.totp ?? []).some(
-    (factor) => factor.status === "verified",
-  );
-  if (aal.data?.currentLevel !== "aal2" || !hasVerifiedTotp) {
+  return {
+    ...context,
+    currentLevel: aal.data?.currentLevel ?? null,
+    verifiedTotpFactorIds: (factors.data?.totp ?? [])
+      .filter((factor) => factor.status === "verified")
+      .map((factor) => factor.id),
+  };
+}
+
+export async function requirePrivilegedOperator(
+  client: SupabaseClient<Database>,
+): Promise<OperatorContext> {
+  const state = await getOperatorMfaState(client);
+  if (state.currentLevel !== "aal2" || state.verifiedTotpFactorIds.length === 0) {
     throw new AccessError(403, "Verify operator MFA before this administrative action.");
   }
-  return context;
+  return { userId: state.userId };
 }
