@@ -71,7 +71,7 @@ begin
     raise exception 'Owner access required';
   end if;
   return query
-    select m.user_id,u.email,p.display_name,m.role,m.status,m.created_at
+    select m.user_id,u.email::text,p.display_name,m.role,m.status,m.created_at
     from public.business_memberships m
     join auth.users u on u.id=m.user_id
     left join public.profiles p on p.id=m.user_id
@@ -252,7 +252,7 @@ begin
     raise exception 'Operator MFA required';
   end if;
   return query
-    select m.user_id,u.email,m.role,m.status,m.created_at
+    select m.user_id,u.email::text,m.role,m.status,m.created_at
     from public.business_memberships m
     join auth.users u on u.id=m.user_id
     where m.business_id=target_business
