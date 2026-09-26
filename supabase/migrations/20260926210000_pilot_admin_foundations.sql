@@ -91,6 +91,128 @@ language sql stable set search_path='' as $$
 $$;
 revoke all on function private.current_aal2() from public,anon,authenticated;
 
+-- Phase 8B actions already require AAL2 in server code. Repeat the same boundary
+-- in RLS so a user cannot bypass those actions by calling the Data API directly.
+drop policy businesses_update_owner on public.businesses;
+create policy businesses_update_owner on public.businesses for update to authenticated
+  using (
+    private.has_business_role(id,array['owner']::public.business_role[])
+    and private.current_aal2()
+  )
+  with check (
+    private.has_business_role(id,array['owner']::public.business_role[])
+    and private.current_aal2()
+  );
+
+drop policy business_profiles_delete on public.business_profiles;
+create policy business_profiles_delete on public.business_profiles for delete to authenticated
+  using (
+    private.has_business_role(business_id,array['owner']::public.business_role[])
+    and private.current_aal2()
+  );
+
+drop policy services_delete on public.services;
+create policy services_delete on public.services for delete to authenticated
+  using (
+    private.has_business_role(business_id,array['owner']::public.business_role[])
+    and private.current_aal2()
+  );
+
+drop policy service_areas_delete on public.service_areas;
+create policy service_areas_delete on public.service_areas for delete to authenticated
+  using (
+    private.has_business_role(business_id,array['owner']::public.business_role[])
+    and private.current_aal2()
+  );
+
+drop policy business_faqs_delete on public.business_faqs;
+create policy business_faqs_delete on public.business_faqs for delete to authenticated
+  using (
+    private.has_business_role(business_id,array['owner']::public.business_role[])
+    and private.current_aal2()
+  );
+
+drop policy business_settings_insert on public.business_settings;
+create policy business_settings_insert on public.business_settings for insert to authenticated
+  with check (
+    private.has_business_role(business_id,array['owner']::public.business_role[])
+    and private.current_aal2()
+  );
+
+drop policy business_settings_update on public.business_settings;
+create policy business_settings_update on public.business_settings for update to authenticated
+  using (
+    private.has_business_role(business_id,array['owner']::public.business_role[])
+    and private.current_aal2()
+  )
+  with check (
+    private.has_business_role(business_id,array['owner']::public.business_role[])
+    and private.current_aal2()
+  );
+
+drop policy leads_delete on public.leads;
+create policy leads_delete on public.leads for delete to authenticated
+  using (
+    private.has_business_role(business_id,array['owner']::public.business_role[])
+    and private.current_aal2()
+  );
+
+create function private.audit_privileged_owner_mutation() returns trigger
+language plpgsql security definer set search_path='' as $
+declare
+  payload jsonb;
+  tenant uuid;
+  target uuid;
+  action_name text;
+  actor uuid:=auth.uid();
+begin
+  if actor is null then
+    if tg_op='DELETE' then return old; else return new; end if;
+  end if;
+
+  payload:=case when tg_op='DELETE' then to_jsonb(old) else to_jsonb(new) end;
+  tenant:=case
+    when tg_table_name='businesses' then (payload->>'id')::uuid
+    else (payload->>'business_id')::uuid
+  end;
+  target:=coalesce((payload->>'id')::uuid,tenant);
+  action_name:=case
+    when tg_table_name='businesses' then 'business.rename'
+    when tg_table_name='business_settings' then 'settings.write'
+    when tg_table_name='business_profiles' then 'profile.delete'
+    when tg_table_name='services' then 'service.delete'
+    when tg_table_name='service_areas' then 'service_area.delete'
+    when tg_table_name='business_faqs' then 'faq.delete'
+    when tg_table_name='leads' then 'lead.delete'
+    else 'owner.privileged_mutation'
+  end;
+
+  insert into public.admin_audit_events(
+    business_id,actor_user_id,actor_scope,action,target_type,target_id,result
+  ) values(
+    tenant,actor,'owner',action_name,tg_table_name,target,'success'
+  );
+
+  if tg_op='DELETE' then return old; else return new; end if;
+end
+$;
+revoke all on function private.audit_privileged_owner_mutation() from public,anon,authenticated;
+
+create trigger audit_business_rename after update on public.businesses
+for each row execute function private.audit_privileged_owner_mutation();
+create trigger audit_profile_delete after delete on public.business_profiles
+for each row execute function private.audit_privileged_owner_mutation();
+create trigger audit_service_delete after delete on public.services
+for each row execute function private.audit_privileged_owner_mutation();
+create trigger audit_service_area_delete after delete on public.service_areas
+for each row execute function private.audit_privileged_owner_mutation();
+create trigger audit_faq_delete after delete on public.business_faqs
+for each row execute function private.audit_privileged_owner_mutation();
+create trigger audit_settings_write after insert or update on public.business_settings
+for each row execute function private.audit_privileged_owner_mutation();
+create trigger audit_lead_delete after delete on public.leads
+for each row execute function private.audit_privileged_owner_mutation();
+
 create function public.operator_list_businesses()
 returns table(
   id uuid,
