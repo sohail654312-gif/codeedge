@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 test.describe("local Supabase business catalog", () => {
   test.skip(process.env.CODEEDGE_E2E_AUTH !== "1", "Requires disposable local Supabase with fictional seeded accounts.");
-  test("owner can persist and clear profile details and create, update, delete a service", async ({ page }) => {
+  test("owner persists catalog edits while destructive catalog actions require MFA at AAL1", async ({ page }) => {
     await page.goto("/sign-in");
     await page.getByLabel("Email address").fill("alice@codeedge.test");
     await page.getByLabel("Password", { exact: true }).fill("Codeedge-local-only-123!");
@@ -30,12 +30,15 @@ test.describe("local Supabase business catalog", () => {
     await expect(card.getByText("Inactive · Quote required", { exact: true })).toBeVisible();
     page.once("dialog", (dialog) => dialog.accept());
     await card.getByRole("button", { name: "Delete service" }).click();
-    await expect(card).toHaveCount(0);
+    await expect(card.getByRole("alert")).toHaveText("Verify MFA before changing privileged owner settings.");
+    await expect(card).toBeVisible();
     page.once("dialog", (dialog) => dialog.accept());
     await page.getByRole("button", { name: "Clear profile details" }).click();
-    await expect(page.getByLabel("Trading name", { exact: true })).toHaveValue("");
+    await expect(page.getByRole("alert").filter({ hasText: /^Verify MFA before changing privileged owner settings\.$/ })).toHaveCount(2);
+    await expect(page.getByLabel("Trading name", { exact: true })).toHaveValue("Northfield Test Trading");
     await page.reload();
-    await expect(page.getByLabel("Trading name", { exact: true })).toHaveValue("");
+    await expect(card).toBeVisible();
+    await expect(page.getByLabel("Trading name", { exact: true })).toHaveValue("Northfield Test Trading");
     await expect(page.getByRole("heading", { name: "Northfield Plumbing", exact: true })).toBeVisible();
   });
 });
