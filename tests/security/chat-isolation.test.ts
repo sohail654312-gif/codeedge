@@ -91,13 +91,15 @@ describe("chat database security and CRM integration", () => {
     await setChatContext(db, widgetA, tokenA);
     await expect(processChat(db, { action: "send", content: "Again", requestId: widgetA })).rejects.toThrow("Chat limit reached");
   });
-  it("captures one existing CRM lead per conversation with website source", async () => {
+  it("captures one existing CRM lead per conversation and links an exact active service", async () => {
+    await db.query("insert into public.services(business_id,name,description,active,display_order) values($1,'Repair','Repairs',true,1)", [f.businessA]);
+    const serviceId = String((await db.query("select id from public.services where business_id=$1 and name='Repair'", [f.businessA])).rows[0]!.id);
     await setChatContext(db, widgetA, tokenA);
     const input = { action: "contact", contact_name: "Fictional customer", phone: "123", email: "", requested_service: "Repair", enquiry_summary: "Please contact me" };
     expect((await processChat(db, input)).contactSaved).toBe(true); await processChat(db, input);
     await db.exec("RESET ROLE");
-    const rows = (await db.query("select business_id,source,enquiry_summary,created_by from public.leads")).rows;
-    expect(rows).toEqual([{ business_id: f.businessA, source: "website", enquiry_summary: "Requested service: Repair\nPlease contact me", created_by: null }]);
+    const rows = (await db.query("select business_id,source,service_id,enquiry_summary,created_by from public.leads")).rows;
+    expect(rows).toEqual([{ business_id: f.businessA, source: "website", service_id: serviceId, enquiry_summary: "Requested service: Repair\nPlease contact me", created_by: null }]);
   });
   it("invalid lead contact is rejected before insertion", async () => {
     await setChatContext(db, widgetA, tokenA);
@@ -127,6 +129,11 @@ describe("chat database security and CRM integration", () => {
   it("tenant-qualified lead relationship rejects another business's lead", async () => {
     const lead = (await db.query("insert into public.leads(business_id,contact_name,phone,enquiry_summary) values($1,'B','123','Enquiry') returning id", [f.businessB])).rows[0]!;
     await expect(db.query("update public.conversations set lead_id=$1 where id=$2", [lead.id, chatA])).rejects.toThrow(/foreign key/);
+  });
+  it("cross-session hourly message budget is enforced before provider work", async () => {
+    await db.query("insert into public.messages(business_id,conversation_id,sender,content,request_id,created_at) select $1,$2,'visitor','budget',gen_random_uuid(),clock_timestamp() from generate_series(1,300)", [f.businessA, chatA]);
+    await setChatContext(db, widgetA, tokenA);
+    await expect(processChat(db, { action: "send", content: "Budget exceeded", requestId: widgetA })).rejects.toThrow("Chat rate limit reached");
   });
   it("per-widget session budget is enforced", async () => {
     await db.query("insert into public.conversations(business_id,widget_id,session_hash) select $1,$2,lpad(n::text,64,'0') from generate_series(1,99) n", [f.businessA, widgetA]);
