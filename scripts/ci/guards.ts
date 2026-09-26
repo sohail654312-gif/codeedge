@@ -12,7 +12,6 @@ export function assertRequiredSteps(value: unknown, stage: keyof typeof required
   const steps = z.record(z.string(), z.unknown()).parse(value);
   const successfulStep = z.object({ outcome: z.literal("success") });
   for (const id of requiredSteps[stage]) {
-    // outcome is the original result, before any continue-on-error conversion.
     if (!successfulStep.safeParse(steps[id]).success) {
       throw new Error(`Required ${stage} step did not execute successfully: ${id}`);
     }
@@ -29,7 +28,6 @@ export function requireNativeDatabase(env: Environment) {
     if (!loopbackHosts.has(url.hostname) || !["postgres:", "postgresql:"].includes(url.protocol)) {
       throw new Error("Security tests require a LOCAL disposable PostgreSQL database.");
     }
-    // CI must target precisely the disposable stack configured in supabase/config.toml.
     if (env.CODEEDGE_REQUIRE_NATIVE_SUPABASE === "1" && (url.port !== "54322" || url.pathname !== "/postgres" || url.search)) {
       throw new Error("Native CI requires the runner database on port 54322 with no connection overrides.");
     }
@@ -87,5 +85,6 @@ export function assertNativeSecurityReport(value: unknown) {
     "tests/security/lead-isolation.test.ts": 1,
     "tests/security/chat-isolation.test.ts": 1,
     "tests/security/ai-isolation.test.ts": 1,
+    "tests/security/handoff-isolation.test.ts": 1,
   });
 }

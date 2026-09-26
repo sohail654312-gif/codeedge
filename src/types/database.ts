@@ -28,12 +28,13 @@ export type LeadNoteFields = { body: string };
 export type LeadNote = LeadNoteFields & { id: string; business_id: string; lead_id: string; created_by: string | null; created_at: string; updated_at: string };
 export type QuoteRequestFields = { details: string; status: QuoteRequestStatus };
 export type QuoteRequest = QuoteRequestFields & { id: string; business_id: string; lead_id: string; created_by: string | null; created_at: string; updated_at: string };
+export type ConversationHandling = "ai" | "human";
 export type Database = {
   public: {
     Tables: {
       chat_widgets: Table<{ id: string; business_id: string; enabled: boolean }, { business_id: string; enabled: boolean }, { enabled?: boolean }>;
-      conversations: Table<{ id: string; business_id: string; widget_id: string; channel: string; lead_id: string | null; created_at: string; updated_at: string; expires_at: string }, never, never>;
-      messages: Table<{ id: string; business_id: string; conversation_id: string; sender: "visitor" | "assistant"; content: string; request_id: string; created_at: string }, never, never>;
+      conversations: Table<{ id: string; business_id: string; widget_id: string; channel: string; lead_id: string | null; handling_mode: ConversationHandling; assigned_to: string | null; taken_over_by: string | null; taken_over_at: string | null; created_at: string; updated_at: string; expires_at: string }, never, never>;
+      messages: Table<{ id: string; business_id: string; conversation_id: string; sender: "visitor" | "assistant" | "member"; content: string; request_id: string; created_by: string | null; created_at: string }, never, never>;
       quote_requests: Table<QuoteRequest, QuoteRequestFields & { business_id: string; lead_id: string; created_by: string }, Partial<QuoteRequestFields>>;
       lead_notes: Table<LeadNote, LeadNoteFields & { business_id: string; lead_id: string; created_by: string }, Partial<LeadNoteFields>>;
       leads: Table<Lead, LeadFields & { business_id: string; created_by: string }, Partial<LeadFields>>;
@@ -48,8 +49,12 @@ export type Database = {
       profiles: Table<Profile, { id: string; display_name?: string }, { display_name?: string }>;
     };
     Views: { [_ in never]: never };
-    Functions: { [_ in never]: never };
-    Enums: { business_role: Role; business_status: BusinessStatus; membership_status: MembershipStatus; lead_status: LeadStatus; quote_request_status: QuoteRequestStatus };
+    Functions: {
+      handoff_take_over: { Args: { target_conversation: string; target_assignee?: string | null }; Returns: undefined };
+      handoff_resume_ai: { Args: { target_conversation: string }; Returns: undefined };
+      handoff_reply: { Args: { target_conversation: string; body: string; target_request: string }; Returns: undefined };
+    };
+    Enums: { business_role: Role; business_status: BusinessStatus; membership_status: MembershipStatus; lead_status: LeadStatus; quote_request_status: QuoteRequestStatus; conversation_handling: ConversationHandling };
     CompositeTypes: { [_ in never]: never };
   };
 };

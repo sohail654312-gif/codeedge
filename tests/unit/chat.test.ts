@@ -36,12 +36,12 @@ describe("chat input and HTTP boundary", () => {
     expect((await post({ action: "send", content: "Hi", requestId: id })).status).toBe(401); expect(connection.run).not.toHaveBeenCalled();
   });
   it("creates a private, path-scoped session cookie and never caches responses", async () => {
-    connection.run.mockResolvedValue({ messages: [], contactSaved: false });
+    connection.run.mockResolvedValue({ messages: [], contactSaved: false, humanHandoff: false });
     const response = await post({ action: "start" });
     expect(response.status).toBe(200); expect(response.headers.get("cache-control")).toBe("no-store");
     const cookie = response.headers.get("set-cookie")!;
     expect(cookie).toContain("HttpOnly"); expect(cookie).toContain("SameSite=strict"); expect(cookie).toContain(`Path=/api/chat/${id}`);
-    expect(await response.json()).toEqual({ messages: [], contactSaved: false });
+    expect(await response.json()).toEqual({ messages: [], contactSaved: false, humanHandoff: false });
   });
   it("hides database errors and secrets", async () => {
     connection.run.mockRejectedValue(new Error("postgres password=secret internal tenant"));
