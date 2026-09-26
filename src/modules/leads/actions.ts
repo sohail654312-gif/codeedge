@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { ZodError } from "zod";
 import { createClient } from "@/server/db/client";
 import { AccessError, requireOwner, requireTenant, type TenantContext } from "@/server/authorization/tenant";
+import { requirePrivilegedOwner } from "@/server/auth/mfa";
 import { selectorSchema } from "@/modules/catalog/validation";
 import { leadNoteSchema, leadSchema, quoteRequestSchema } from "./validation";
 
@@ -13,6 +14,13 @@ async function member(form: FormData) {
   const id = selectorSchema.parse(form.get("businessId"));
   const client = await createClient();
   const context = await requireTenant(client, { id });
+  return { client, context };
+}
+
+async function privilegedOwner(form: FormData) {
+  const id = selectorSchema.parse(form.get("businessId"));
+  const client = await createClient();
+  const context = await requirePrivilegedOwner(client, { id });
   return { client, context };
 }
 
@@ -59,7 +67,7 @@ export async function saveLead(_state: LeadState, form: FormData): Promise<LeadS
 export async function deleteLead(_state: LeadState, form: FormData): Promise<LeadState> {
   let destination = "";
   try {
-    const { client, context } = await member(form); requireOwner(context);
+    const { client, context } = await privilegedOwner(form);
     const id = selectorSchema.parse(form.get("leadId"));
     const result = await client.from("leads").delete().eq("business_id", context.business.id).eq("id", id).select("id").maybeSingle();
     if (result.error || !result.data) throw new Error("Delete denied");
