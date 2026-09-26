@@ -26,11 +26,13 @@ test.describe("pilot readiness journeys", () => {
     await page.getByRole("link", { name: /Northfield Plumbing/ }).click();
     await page.getByRole("link", { name: /Team access/ }).click();
     await expect(page.getByRole("heading", { name: "Team access" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "staff@codeedge.test" })).toBeVisible();
+    const staffHeading = page.getByRole("heading", { name: "staff@codeedge.test" });
+    await expect(staffHeading).toBeVisible();
+    const staffMembership = staffHeading.locator("..");
 
     page.once("dialog", (dialog) => dialog.accept());
-    await page.getByRole("button", { name: "Revoke staff access" }).click();
-    await expect(page.getByRole("alert")).toContainText("Verify MFA before changing privileged owner settings.");
+    await staffMembership.getByRole("button", { name: "Revoke staff access" }).click();
+    await expect(staffMembership.getByRole("alert")).toContainText("Verify MFA before changing privileged owner settings.");
   });
 
   test("staff cannot open owner membership administration", async ({ page }) => {
