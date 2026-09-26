@@ -1,0 +1,33 @@
+{
+  "schema_version": 2,
+  "created": "2026-09-26",
+  "preservation_status": "complete",
+  "projects": {
+    "mvp": {
+      "repository": "sohail654312-gif/codeedge",
+      "audited_implementation_sha": "59315addef691afc754b7d93a68ad7ef3005dc87",
+      "audit_memory_main_sha": "1e149102cbd49df5df2586c3b7a8b52a493eed58",
+      "audits_complete": 4,
+      "remediation": "not_started",
+      "audited_baseline_ci": "Foundation checks #16 GREEN",
+      "preservation_ci": "Foundation checks #17 zero-step failure on attempts 1 and 2; non-diagnostic"
+    },
+    "business_os": {
+      "repository": "sohail654312-gif/codeedge-business-os",
+      "audit_baseline_sha": "0a7c3e446a097bcf6cbbc0f2571a9cfce6fa5d3a",
+      "product_main_before_preservation": "5be0269a6df961c965194dc06f61f9ef51ef9a2e",
+      "audit_memory_main_sha": "a9b9ad7eee3d3d99004a3af11d002936908b9282",
+      "preservation_ci": "CI #735 GREEN",
+      "audits_complete": 4,
+      "audit1_remediation_verified": "7/8",
+      "audit1_pr": 48,
+      "audit1_head": "b561fb7e404165fb8ac52039d9c40cb418921485",
+      "audit1_blocker": "A1-01 branch protection"
+    }
+  },
+  "governance_caveats": {
+    "mvp_main_protected": false,
+    "business_os_main_protected": false,
+    "github_connector_admin_write_available": false
+  }
+}
