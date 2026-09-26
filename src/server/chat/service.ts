@@ -22,10 +22,11 @@ export async function processChat(db: ChatDb, input: unknown, provider?: AiProvi
   if (!session) throw new Error("Chat unavailable");
   if (request.action === "contact") {
     const lead = validateContact(request);
-    await db.query("select private.capture_chat_lead($1,$2,$3,$4)", [lead.contact_name, lead.phone, lead.email, lead.enquiry_summary]);
+    await db.query("select private.capture_chat_lead($1,$2,$3,$4,$5)", [lead.contact_name, lead.phone, lead.email, lead.enquiry_summary, request.requested_service]);
   } else {
     const duplicate = (await db.query("select id from public.messages where conversation_id=$1 and request_id=$2", [session.id, request.requestId])).rows.length > 0;
     if (!duplicate) {
+      await db.query("select private.consume_chat_message_budget()");
       const { rows } = await db.query<{ total: number; too_soon: boolean }>("select count(*)::int as total,coalesce(max(created_at)>clock_timestamp()-interval '2 seconds',false) as too_soon from public.messages where conversation_id=$1", [session.id]);
       if (rows[0]!.total >= 60 || rows[0]!.too_soon) throw new Error("Chat limit reached");
       await db.query("insert into public.messages(business_id,conversation_id,sender,content,request_id) values($1,$2,'visitor',$3,$4)", [session.business_id, session.id, request.content, request.requestId]);
