@@ -63,7 +63,8 @@ describe("WhatsApp webhook and provider boundaries", () => {
   });
 
   it("sends provider-neutral text through the configured Meta endpoint without logging credentials", async () => {
-    const fetchMock = vi.fn(async (_input: string | URL | Request, _init?: RequestInit) => new Response(JSON.stringify({ messages: [{ id: "wamid.sent-1" }] }), {
+    const fetchMock = vi.fn<(input: string | URL | Request, init?: RequestInit) => Promise<Response>>();
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ messages: [{ id: "wamid.sent-1" }] }), {
       status: 200, headers: { "Content-Type": "application/json" },
     }));
     vi.stubGlobal("fetch", fetchMock);
