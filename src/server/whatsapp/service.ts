@@ -20,7 +20,7 @@ type Outbox = { id: string; status: "pending" | "sent" | "failed"; recipient_id:
 export async function processWhatsAppInbound(db: WhatsAppDb, input: unknown, provider?: AiProvider) {
   const message = inboundSchema.parse(input);
   const channel = (await db.query<Channel>(
-    "select id,business_id,phone_number_id from public.whatsapp_channels for update"
+    "select id,business_id,phone_number_id from public.whatsapp_channels"
   )).rows[0];
   if (!channel) throw new Error("WhatsApp unavailable");
 
