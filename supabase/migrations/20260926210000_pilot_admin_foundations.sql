@@ -90,6 +90,7 @@ language sql stable set search_path='' as $$
   ) = 'aal2'
 $$;
 revoke all on function private.current_aal2() from public,anon,authenticated;
+grant execute on function private.current_aal2() to authenticated;
 
 -- Phase 8B actions already require AAL2 in server code. Repeat the same boundary
 -- in RLS so a user cannot bypass those actions by calling the Data API directly.
