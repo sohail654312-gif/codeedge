@@ -2,6 +2,7 @@ import "server-only";
 import { MetaWhatsAppTransport, type WhatsAppTransport } from "./provider";
 import { withWhatsApp } from "./store";
 import { loadWhatsAppOutbox, markWhatsAppOutbox } from "./service";
+import { reportOperationalEvent } from "@/server/observability";
 
 export async function dispatchWhatsAppOutbox(
   phoneNumberId: string,
@@ -26,12 +27,14 @@ export async function dispatchWhatsAppOutbox(
     }));
     return { sent: true, providerMessageId: result.providerMessageId };
   } catch {
+    reportOperationalEvent("whatsapp.delivery.failed");
     try {
       await withWhatsApp(phoneNumberId, (db) => markWhatsAppOutbox(db, outboxId, {
         status: "failed",
         error: "Provider delivery failed",
       }));
     } catch {
+      reportOperationalEvent("whatsapp.outbox_status.failed");
       // Preserve the original delivery failure. A provider retry remains safe
       // because the outbox message itself is idempotent.
     }

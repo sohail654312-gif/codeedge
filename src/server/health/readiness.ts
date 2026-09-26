@@ -2,6 +2,7 @@ import "server-only";
 import { Client } from "pg";
 import { getEnvironment } from "@/server/env";
 import { chatConnection } from "@/server/chat/store";
+import { reportOperationalEvent } from "@/server/observability";
 
 function whatsappConfigurationCoherent() {
   const names = [
@@ -52,13 +53,22 @@ export async function isApplicationReady(
 ) {
   try {
     getEnvironment();
-    if (!whatsappConfigurationCoherent()) return false;
-    const [supabase, chat] = await Promise.all([
-      supabaseReady(dependencies.fetchImpl ?? fetch),
-      (dependencies.checkChat ?? chatCapabilityReady)(),
-    ]);
-    return supabase && chat;
   } catch {
+    reportOperationalEvent("readiness.environment.failed");
     return false;
   }
+  if (!whatsappConfigurationCoherent()) {
+    reportOperationalEvent("readiness.whatsapp_configuration.failed");
+    return false;
+  }
+
+  const [supabaseResult, chatResult] = await Promise.allSettled([
+    supabaseReady(dependencies.fetchImpl ?? fetch),
+    (dependencies.checkChat ?? chatCapabilityReady)(),
+  ]);
+  const supabase = supabaseResult.status === "fulfilled" && supabaseResult.value;
+  const chat = chatResult.status === "fulfilled" && chatResult.value;
+  if (!supabase) reportOperationalEvent("readiness.supabase.failed");
+  if (!chat) reportOperationalEvent("readiness.chat.failed");
+  return supabase && chat;
 }

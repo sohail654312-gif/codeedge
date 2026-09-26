@@ -8,6 +8,7 @@ import {
   verifyWebhookToken,
   verifyWhatsAppSignature,
 } from "@/server/whatsapp/webhook";
+import { reportOperationalEvent } from "@/server/observability";
 
 export const runtime = "nodejs";
 
@@ -43,6 +44,7 @@ export async function POST(request: NextRequest) {
     }
     return NextResponse.json({ received: true }, { headers: { "Cache-Control": "no-store" } });
   } catch {
+    reportOperationalEvent("whatsapp.webhook.failed");
     return NextResponse.json(
       { error: "WhatsApp webhook could not be processed." },
       { status: 500, headers: { "Cache-Control": "no-store" } },
