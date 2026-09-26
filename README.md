@@ -2,12 +2,13 @@
 
 AI customer communication and lead management for UK service businesses.
 
-**Current working branch through Phase 3 (native CI pending):** Next.js application
-shell, Supabase authentication, businesses, memberships, owner/staff roles,
-PostgreSQL row-level security, business profiles, services, service areas, opening
-hours, FAQs, minimal business settings, and tenant-secured lead management with
-notes and quote requests. AI, WhatsApp, payments, document ingestion, analytics,
-and advanced channel integrations are not implemented.
+**Current MVP scope through Phase 8B and final-completion Attempt 1:** Next.js,
+Supabase authentication, invitation-only owner/staff tenancy, forced RLS, business
+knowledge, CRM, Website Chat, grounded AI Brain, human handoff/shared conversations,
+trusted WhatsApp channel foundations, owner MFA/AAL2 enforcement, and bounded
+internal operator/membership administration. Payments, billing, advanced analytics,
+a full quote builder, Jarvis/AI employees and unrelated Business OS capabilities
+remain outside this original MVP.
 
 ## Stack
 
@@ -38,9 +39,8 @@ Successful local checks do not replace native integration verification.
 the `Foundation checks` GitHub Actions run for the current revision is green,
 including `Application checks`, `Native Supabase integration`, and the exact
 `Phase 1 merge gate` check. Record the commit SHA, run URL and your review decision.
-GitHub does not block merging on the current private-repository plan; the founder
-must enforce this rule manually. The repository stays private and no plan upgrade
-is required. See [the manual gate procedure](docs/phase-1-merge-gate.md).
+Repository protection may evolve, but it never replaces the application/native CI
+gate: only the exact green tested revision may be merged. See [the manual gate procedure](docs/phase-1-merge-gate.md).
 
 Once separately authorized, the first Phase 1 feature-branch commit/push is allowed
 to trigger CI; it is not approval to merge, release, or start the next phase.
@@ -174,8 +174,13 @@ of downloading Chromium. Omit `PLAYWRIGHT_USE_BUILD` to test the development ser
 - Passwords require 12 characters. Reset responses do not reveal account existence.
 - Global sign-out revokes refresh sessions. Already-issued access JWTs can remain
   valid until expiry. Membership revocation is independently checked by live RLS.
-- Customer-facing provisioning, membership editing, and MFA screens are deferred.
-  TOTP is enabled in local Auth config, but **application MFA is not yet enforced**.
+- Owner TOTP enrollment/challenge is implemented, and genuinely privileged owner
+  actions use the reusable AAL2 guard.
+- Platform operators are separate from customer roles. Operator provisioning and
+  staff-administration mutations require active operator authorization plus AAL2,
+  are tenant-targeted and append administrative audit evidence.
+- Owners can view their own memberships and revoke staff after AAL2 verification;
+  owner removal/orphaning is not exposed.
 
 The request's business slug/ID is a selector, never authorization. `requireTenant()`
 verifies the user and active membership for that exact user/business pair. Database
@@ -183,7 +188,7 @@ policies independently check active membership and business status on each state
 Owners may edit only their own business name; staff are read-only. UPDATE policies
 recheck permission even if membership was revoked after the application's first read.
 
-All seven application tables have RLS enabled and forced. Anonymous clients have no
+All application tenant/security tables have RLS enabled and forced. Anonymous clients have no
 table grants. Ordinary clients cannot insert/delete businesses or change memberships,
 roles, statuses, IDs, or ownership. Profiles are private to their user and store no roles.
 
@@ -193,7 +198,8 @@ identity from `auth.uid()` and accepts no user-ID argument. Migration/maintenanc
 credentials remain privileged and must never be used for customer requests.
 
 Tenant responses are not publicly cached. CSP uses per-request script nonces and
-framing is blocked for the staff shell. A future widget needs its own framing policy.
+framing is blocked for the staff shell. The public Website Chat route uses its own session/origin/capability boundary and
+does not inherit customer dashboard authorization.
 
 ## Structure and schema
 
@@ -231,10 +237,12 @@ all lint rules remain enabled and lint passes. npm may print peer-range warnings
 Clean-install resolution succeeds. Remove the adapter when upstream plugins support
 ESLint 10 directly. Next.js also generates `AGENTS.md`/`CLAUDE.md` on first dev start.
 
-This is a development foundation. Pass the required native Supabase CI gate,
-verify invitation/reset email journeys, implement and enforce owner/operator MFA,
-configure production SMTP/abuse controls, and complete backups/restoration and
-monitoring. These are not claimed complete by application-only test results.
+This remains a pre-pilot MVP until the final Attempt 2 closure is complete. Owner
+and operator MFA, operator/member administration, audit evidence, expanded Website
+Chat abuse controls, and a dependency-aware readiness endpoint are implemented.
+Attempt 2 still owns production SMTP verification, backups/restoration, monitoring,
+release/rollback rehearsal, remaining capacity/concurrency/pagination work and the
+final clean-room pilot decision. See `docs/pilot-readiness-attempt-1.md`.
 
 Use separate dev/staging/production projects. Select London for the production
 database. Never connect preview builds or fixture scripts to production. Every future
