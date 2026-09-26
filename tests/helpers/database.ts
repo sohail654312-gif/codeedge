@@ -65,5 +65,5 @@ export async function seedDatabase(db: TestDatabase) {
 
 export async function asUser(db: TestDatabase, userId: string | null) {
   await db.exec(userId ? "SET LOCAL ROLE authenticated" : "SET LOCAL ROLE anon");
-  await db.query("select set_config('request.jwt.claim.sub', $1, true), set_config('request.jwt.claims', $2, true)", [userId ?? "", JSON.stringify(userId ? { sub: userId, role: "authenticated" } : { role: "anon" })]);
+  await db.query("select set_config('request.jwt.claim.sub', $1, true), set_config('request.jwt.claims', $2, true)", [userId ?? "", JSON.stringify(userId ? { sub: userId, role: "authenticated", aal: "aal2" } : { role: "anon" })]);
 }
