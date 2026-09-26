@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { localTotpCode } from "../helpers/totp-fixture";
 
 // Explicit opt-in for real GoTrue/PostgREST integration. CI's Supabase job enables it.
 test.describe("local Supabase authentication", () => {
@@ -48,18 +49,44 @@ test.describe("local Supabase authentication", () => {
       await expect(page).toHaveURL(/\/sign-in$/);
     });
   }
-  test("owner can open Security & MFA and begin real Supabase TOTP enrollment", async ({ page }) => {
+  test("owner completes real Supabase TOTP enrollment and later AAL1 challenge", async ({ page }) => {
+    test.setTimeout(90000);
     await page.goto("/sign-in");
-    await page.getByLabel("Email address").fill("alice@codeedge.test");
+    await page.getByLabel("Email address").fill("bob@codeedge.test");
     await page.getByLabel("Password", { exact: true }).fill("Codeedge-local-only-123!");
     await page.getByRole("button", { name: "Sign in", exact: true }).click();
-    await page.goto("/dashboard/northfield-plumbing/security");
+    await expect(page.getByRole("heading", { name: "Your businesses" })).toBeVisible();
+
+    await page.goto("/dashboard/westbrook-electrical/security");
     await expect(page.getByRole("heading", { name: "Security & MFA" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "MFA not enabled" })).toBeVisible();
     await page.getByRole("button", { name: "Set up authenticator app" }).click();
     await expect(page.getByAltText("Authenticator QR code")).toBeVisible();
-    await expect(page.getByText("If you cannot scan the QR code, enter this temporary setup secret manually:")).toBeVisible();
-    await expect(page.getByLabel("Authenticator code")).toBeVisible();
+    const secret = (await page.locator("code").textContent())?.trim();
+    expect(secret).toBeTruthy();
+    await page.getByLabel("Authenticator code").fill(localTotpCode(secret!));
+    await page.getByRole("button", { name: "Enable MFA" }).click();
+    await expect(page.getByRole("heading", { name: "MFA enabled" })).toBeVisible();
+
+    await page.goto("/dashboard/westbrook-electrical");
+    await page.getByRole("button", { name: "Sign out" }).click();
+    await expect(page).toHaveURL(/\/sign-in$/);
+
+    await page.getByLabel("Email address").fill("bob@codeedge.test");
+    await page.getByLabel("Password", { exact: true }).fill("Codeedge-local-only-123!");
+    await page.getByRole("button", { name: "Sign in", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Your businesses" })).toBeVisible();
+
+    await page.goto("/dashboard/westbrook-electrical/security");
+    await expect(page.getByRole("heading", { name: "MFA challenge required" })).toBeVisible();
+    await page.getByLabel("Authenticator code").fill(localTotpCode(secret!, Date.now() + 30_000));
+    await page.getByRole("button", { name: "Verify MFA" }).click();
+    await expect(page.getByRole("heading", { name: "MFA enabled" })).toBeVisible();
+
+    await page.goto("/dashboard/westbrook-electrical");
+    await page.getByLabel("Lead notification email (optional)").fill("mfa-owner@westbrook.test");
+    await page.getByRole("button", { name: "Save settings" }).click();
+    await expect(page.getByRole("status").filter({ hasText: /^Business settings saved\.$/ })).toBeVisible();
   });
 
   test("staff cannot open owner MFA configuration", async ({ page }) => {
@@ -67,6 +94,7 @@ test.describe("local Supabase authentication", () => {
     await page.getByLabel("Email address").fill("staff@codeedge.test");
     await page.getByLabel("Password", { exact: true }).fill("Codeedge-local-only-123!");
     await page.getByRole("button", { name: "Sign in", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Your businesses" })).toBeVisible();
     await page.goto("/dashboard/northfield-plumbing/security");
     await expect(page.getByRole("heading", { name: "Workspace unavailable" })).toBeVisible();
   });
