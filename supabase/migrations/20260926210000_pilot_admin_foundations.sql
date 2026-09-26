@@ -54,6 +54,34 @@ create policy admin_audit_read on public.admin_audit_events for select to authen
   or private.is_platform_operator()
 );
 
+create function public.list_business_memberships(target_business uuid)
+returns table(
+  user_id uuid,
+  email text,
+  display_name text,
+  role public.business_role,
+  status public.membership_status,
+  created_at timestamptz
+)
+language plpgsql stable security definer set search_path='' as $
+begin
+  if auth.uid() is null
+    or not private.has_business_role(target_business,array['owner']::public.business_role[])
+  then
+    raise exception 'Owner access required';
+  end if;
+  return query
+    select m.user_id,u.email,p.display_name,m.role,m.status,m.created_at
+    from public.business_memberships m
+    join auth.users u on u.id=m.user_id
+    left join public.profiles p on p.id=m.user_id
+    where m.business_id=target_business
+    order by case when m.role='owner' then 0 else 1 end,u.email,m.user_id;
+end
+$;
+revoke all on function public.list_business_memberships(uuid) from public,anon;
+grant execute on function public.list_business_memberships(uuid) to authenticated;
+
 create function private.current_aal2() returns boolean
 language sql stable set search_path='' as $$
   select coalesce(
@@ -99,6 +127,13 @@ end
 $$;
 revoke all on function public.revoke_staff_membership(uuid,uuid) from public,anon;
 grant execute on function public.revoke_staff_membership(uuid,uuid) to authenticated;
+
+-- The visitor channel can safely return at most 4,000 characters in one approved
+-- assistant message. Keep FAQ authoring within the same delivery boundary instead
+-- of accepting knowledge that the AI path cannot faithfully return.
+alter table public.business_faqs
+  add constraint business_faqs_ai_delivery_length
+  check (char_length(answer) <= 4000);
 
 -- Public chat already has per-session limits. Add a cross-session per-widget hourly
 -- budget so many fresh sessions cannot bypass the message/provider-cost boundary.
