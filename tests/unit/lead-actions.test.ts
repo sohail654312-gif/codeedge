@@ -11,7 +11,7 @@ const other = "20000000-0000-4000-8000-000000000002";
 const leadId = "30000000-0000-4000-8000-000000000001";
 const recordId = "40000000-0000-4000-8000-000000000001";
 
-type Mode = "owner" | "staff" | "revoked" | "anonymous" | "other" | "hidden-lead" | "hidden-write";
+type Mode = "owner" | "owner-aal1" | "staff" | "revoked" | "anonymous" | "other" | "hidden-lead" | "hidden-write";
 function setup(mode: Mode = "owner") {
   const calls: { table: string; operation?: string; values?: unknown; filters: unknown[][] }[] = [];
   const from = vi.fn((table: string) => {
@@ -31,7 +31,7 @@ function setup(mode: Mode = "owner") {
     };
     return chain;
   });
-  vi.mocked(createClient).mockResolvedValue({ from, auth: { getUser: async () => ({ data: { user: mode === "anonymous" ? null : { id: "user-a", email_confirmed_at: "2026-09-19" } }, error: null }) } } as unknown as Awaited<ReturnType<typeof createClient>>);
+  vi.mocked(createClient).mockResolvedValue({ from, auth: { getUser: async () => ({ data: { user: mode === "anonymous" ? null : { id: "user-a", email_confirmed_at: "2026-09-19" } }, error: null }), mfa: { getAuthenticatorAssuranceLevel: async () => ({ data: { currentLevel: mode === "owner-aal1" ? "aal1" : "aal2", nextLevel: "aal2", currentAuthenticationMethods: [] }, error: null }), listFactors: async () => ({ data: { all: [], phone: [], totp: [{ id: "81000000-0000-4000-8000-000000000001", status: "verified", factor_type: "totp" }] }, error: null }) } } } as unknown as Awaited<ReturnType<typeof createClient>>);
   return calls;
 }
 
@@ -67,6 +67,17 @@ describe("lead actions enforce live tenant authorization", () => {
       expect(await action({}, form)).toHaveProperty("error"); expect(calls).toEqual([]);
     });
   }
+
+  it("requires AAL2 before cascade-deleting a lead", async () => {
+    const calls = setup("owner-aal1");
+    expect(await deleteLead({}, leadForm(true))).toMatchObject({ error: "Verify MFA before changing privileged owner settings." });
+    expect(calls.every((call) => ["businesses", "business_memberships"].includes(call.table))).toBe(true);
+  });
+  it.each([[deleteLeadNote, () => childForm("note", true)], [deleteQuoteRequest, () => childForm("quote", true)]] as const)("keeps lower-risk owner cleanup available at AAL1", async (action, makeForm) => {
+    const calls = setup("owner-aal1");
+    expect(await action({}, makeForm())).toHaveProperty("success");
+    expect(calls.some((call) => call.operation === "delete")).toBe(true);
+  });
 
   it.each([[deleteLead, () => leadForm(true)], [deleteLeadNote, () => childForm("note", true)], [deleteQuoteRequest, () => childForm("quote", true)]] as const)("staff cannot run owner-only delete", async (action, makeForm) => {
     const calls = setup("staff"); expect(await action({}, makeForm())).toHaveProperty("error");
