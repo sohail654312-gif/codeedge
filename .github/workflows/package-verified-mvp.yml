@@ -1,0 +1,38 @@
+name: Package verified MVP source
+
+on:
+  push:
+    branches:
+      - package-mvp-export-20260927
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact verified MVP
+        uses: actions/checkout@v4
+        with:
+          ref: d03bfb2f2b776f6e99a588d36eae02dbdf3aa16b
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Verify exact source SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "d03bfb2f2b776f6e99a588d36eae02dbdf3aa16b"
+      - name: Create exact tracked-source ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          git archive --format=zip --prefix=codeedge-mvp/ --output=codeedge-mvp-d03bfb2f2b77.zip HEAD
+      - name: Upload MVP ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: codeedge-mvp-d03bfb2f2b77
+          path: codeedge-mvp-d03bfb2f2b77.zip
+          if-no-files-found: error
+          retention-days: 1
